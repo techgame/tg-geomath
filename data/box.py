@@ -145,7 +145,7 @@ class Box(object):
 
     def __init__(self, data=None, p1=None, dtype=None):
         if dtype is None: 
-            dtype = self.dtype_default
+            dtype = getattr(data, 'dtype', self.dtype_default)
 
         if data is None:
             data = self.DataFactory(dtype)
@@ -167,14 +167,13 @@ class Box(object):
         return leading + numpy.array2string(self._data, prefix=prefix+' '*len(leading))
     def __repr__(self):
         return self.repr()
+    def __str__(self):
+        return str(self._data)
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     #~ Instance construction
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    @classmethod
-    def newWith(klass, *args, **kw):
-        return klass.__new__(klass, *args, **kw)
     @classmethod
     def new(klass):
         return klass.__new__(klass)
@@ -346,8 +345,13 @@ class Box(object):
             return self._data.astype(dtype)
         else: return self._data
 
-    def __getitem__(self, key): return self._data[key]
-    def __setitem__(self, key, value): self._data[key] = value
+    def __getitem__(self, key): 
+        r = self._data[key]
+        if r.ndim >= 2:
+            r = self.fromData(r.squeeze())
+        return r
+    def __setitem__(self, key, value): 
+        self._data[key] = value
 
     def __add__(self, other): return self._data.__add__(other)
     def __radd__(self, other): return self._data.__radd__(other)
@@ -389,38 +393,4 @@ class Box(object):
 
 class CenterBox(Box):
     at_rel_default = 0.5
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#~ Main 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-if __name__=='__main__':
-    from TG.geomath.data.symbolic import sym, evalExpr
-
-    bdata = numpy.array([[sym.l, sym.b], [sym.r, sym.t]])
-    bdata1 = numpy.array([[sym.l1, sym.b1], [sym.r1, sym.t1]])
-
-    box = Box.fromData(bdata)
-    boxn = Box.fromData(numpy.array([bdata, bdata1]))
-
-    print
-    print box.p0, box.p1
-    print ((box.l, box.b), (box.r, box.t))
-    print box.size, '==', (box.w, box.h), '==', (box.width, box.height)
-
-    print
-    print boxn.atPos(sym.a)
-    print box.atPos((sym.xa, sym.ya))
-    print evalExpr(box.atPos((.2, .5)), 
-            l=-10, r=10,b=10,t=20)
-    print evalExpr(box.atPos(.5), 
-            l=-10, r=10,b=10,t=20)
-
-    print
-    print boxn.atPos(sym.a)
-    print boxn.atPos((sym.xa, sym.ya))
-    print evalExpr(boxn.atPos((.2, .5)), 
-            l=-10, r=10,b=10,t=20,
-            l1=-100, r1=100,b1=100,t1=200,
-            )
 

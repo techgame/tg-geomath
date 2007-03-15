@@ -261,7 +261,10 @@ class Box(object):
     def inset(self, delta, xfrm=-_xfrmSize):
         self.offset(xfrm*delta)
     def offset(self, delta):
-        self._data = self._data + delta 
+        self._data += delta
+
+    def scaleAt(self, scale, at=None, sidx=Ellipsis):
+        self._data[sidx] =  self.posForSizeAt(at, self.size*scale, sidx)
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

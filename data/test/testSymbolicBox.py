@@ -120,6 +120,14 @@ class TestBoxSymbolic(unittest.TestCase):
         self.sbox.inset((sym.dx, sym.dy))
         self.doPrintTest(self.sbox, result)
 
+    def test_scaleAt(self):
+        resultLeft = '(((r * p) + (l * (-p + 1.0))) + ((-p + 1.0) * ((r + -l) * s)))'
+        self.sbox.scaleAt(sym.s, sym.p) 
+        self.doPrintTest(self.sbox.left, resultLeft)
+
+        resultRight = '(((r * p) + (l * (-p + 1.0))) + -(p * ((r + -l) * s)))'
+        self.doPrintTest(self.sbox.right, resultRight)
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Vector version of the test
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

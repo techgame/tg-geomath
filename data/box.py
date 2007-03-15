@@ -37,7 +37,7 @@ xfrmTriStrip = numpy.array([
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 def asblend(host, rel, xfrm=_xfrmSize_f[:,None], xoff=_xfrmOff_f[:,None]):
-    if rel is None: rel = host.blend_default
+    if rel is None: rel = host.at_rel_default
     return asarray(rel)*xfrm + xoff
 
 def toAspect(size, aspect, grow=None):
@@ -96,9 +96,9 @@ class AtSyntax(object):
             rsize0 = key.start
             rsize1 = key.stop
             if rsize0 is None: 
-                rsize0 = box.blend_default
+                rsize0 = 0
             if rsize1 is None: 
-                rsize1 = box.blend_default_stop
+                rsize1 = 1
 
             return box.size * float(rsize1-rsize0)
         else:
@@ -113,9 +113,9 @@ class AtSyntax(object):
             rsize0 = key.start
             rsize1 = key.stop
             if rsize0 is None: 
-                rsize0 = box.blend_default
+                rsize0 = 0
             if rsize1 is None: 
-                rsize1 = box.blend_default_stop
+                rsize1 = 1
 
             idrsize = 1./(rsize1-rsize0)
 
@@ -129,19 +129,25 @@ class AtSyntax(object):
 class Box(object):
     DataFactory = lambda self: numpy.zeros((2,2), numpy.float)
     _data = None
-    blend_default = 0 # our default relative should be p0... could be .5, or 1, or something more esoteric
-    blend_default_stop = 1
+    at_rel_default = 0 # our default relative should be p0... could be .5, or 1, or something more esoteric
 
-    def __init__(self, data=None, dtype=None):
+    def __init__(self, data=None, p1=None, dtype=None):
         if data is None:
             data = self.DataFactory()
         else:
+            if p1 is not None:
+                data = [data, p1]
             data = asarray(data, dtype)
+            if data.ndim == 1:
+                data = asarray([numpy.zeros_like(data), data], dtype)
             if data.shape[-2] != 2:
                 raise ValueError("Box requires data.shape[-2] == 2.  Data.shape is %r" % (data.shape,))
         self._data = data
+    def repr(self, prefix=''):
+        leading = '<%s ' % (self.__class__.__name__,)
+        return leading + numpy.array2string(self._data, prefix=prefix+' '*len(leading))
     def __repr__(self):
-        return '<%s %r>' % (self.__class__.__name__, self._data)
+        return self.repr()
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     #~ Instance construction
@@ -316,6 +322,10 @@ class Box(object):
     def __pos__(self, other, *modulo):  return self._data.__pos__(other)
     def __abs__(self, other, *modulo):  return self._data.__abs__(other)
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class CenterBox(Box):
+    at_rel_default = 0.5
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Main 

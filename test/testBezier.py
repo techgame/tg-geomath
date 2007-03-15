@@ -13,8 +13,8 @@
 import unittest
 
 from numpy import allclose
-from TG.geoMath import bezier
-from TG.geoMath.data.color import Color
+from TG.geomath import bezier
+from TG.geomath.data.color import Color
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 

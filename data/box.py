@@ -152,9 +152,9 @@ class BlendAtSyntax(object):
     def __getitem__(self, alpha):
         box = self.box
 
-        idx0 = (alpha % 1)
+        idx0, ialpha = divmod(alpha, 1)
         boxData = box._data[..., idx0:idx0+2, :, :]
-        return box.fromData(self._boxBlendData(alpha, boxData))
+        return box.fromData(self._boxBlendData(ialpha, boxData))
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Box class -- the subject of the module

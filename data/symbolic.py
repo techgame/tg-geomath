@@ -167,7 +167,7 @@ pprintExpr = ppExpr.pprint
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class ExpressionEvaluator(object):
+class ExprEvaluator(object):
     opTable = {
         ('+', 2): opmodule.add,
         ('-', 2): opmodule.sub,
@@ -216,8 +216,8 @@ class ExpressionEvaluator(object):
         operands = [self.visit(opand) for opand in operator.operands]
         opfn = self.opTable[operator.op, len(operands)]
         return opfn(*operands)
-
-evalExpr = ExpressionEvaluator.evaluate
+ExprEval = ExprEvaluator
+evalExpr = ExprEval.evaluate
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Main 

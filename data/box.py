@@ -40,35 +40,40 @@ def asblend(host, rel, xfrm=_xfrmSize_f[:,None], xoff=_xfrmOff_f[:,None]):
     if rel is None: rel = host.at_rel_default
     return asarray(rel)*xfrm + xoff
 
-def toAspect(size, aspect, grow=None):
-    if grow is None and isinstance(aspect, tuple):
+def toAspect(size, aspect, nidx=0, didx=1):
+    if isinstance(aspect, tuple):
         aspect, grow = aspect
+    else: grow = None
+
+    size = asarray(size)
 
     if aspect <= 0:
         return size
 
     if isinstance(grow, basestring):
         if grow == 'w':
-            size[0:1] = aspect * size[1:2]
+            size[..., nidx] = aspect * size[..., didx]
             return size
 
         elif grow == 'h':
-            size[1:2] = aspect * size[0:1]
+            size[..., didx] = aspect * size[..., nidx]
             return size
 
         else:
             raise RuntimeError('Unknown grow constant %r' % (grow,))
 
-    acurrent = float(size[0])/size[1]
+    acurrent = float(size[nidx])/size[didx]
     if bool(grow) ^ (aspect > acurrent):
         # new h is greater than old h
-        size[1:2] = size[0:1] / aspect
+        size[..., didx] = size[nidx] / aspect
     else:
         # new w is greater than old w
-        size[0:1] = aspect * size[1:2]
+        size[..., nidx] = aspect * size[..., didx]
     return size
 
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~ Box accessors
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class BoxItemProperty(object):
@@ -82,6 +87,8 @@ class BoxItemProperty(object):
         return obj._data[self.key]
     def __set__(self, obj, value):
         obj._data[self.key] = value
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class AtSyntax(object):
     def __init__(self, box):
@@ -125,24 +132,36 @@ class AtSyntax(object):
             self.box.atPosSet(key, value)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~ Box class -- what it is all about
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class Box(object):
-    DataFactory = lambda self: numpy.zeros((2,2), numpy.float)
-    _data = None
     at_rel_default = 0 # our default relative should be p0... could be .5, or 1, or something more esoteric
+    dtype_default = numpy.float
+
+    DataFactory = lambda self, dtype: numpy.zeros((2,2), dtype)
+    _asDataArray = staticmethod(asarray)
+    _data = None
 
     def __init__(self, data=None, p1=None, dtype=None):
+        if dtype is None: 
+            dtype = self.dtype_default
+
         if data is None:
-            data = self.DataFactory()
+            data = self.DataFactory(dtype)
+
         else:
             if p1 is not None:
                 data = [data, p1]
-            data = asarray(data, dtype)
-            if data.ndim == 1:
-                data = asarray([numpy.zeros_like(data), data], dtype)
+            elif numpy.ndim(data) == 1:
+                data = [numpy.zeros_like(data), data]
+
+            data = self._asDataArray(data, dtype)
             if data.shape[-2] != 2:
                 raise ValueError("Box requires data.shape[-2] == 2.  Data.shape is %r" % (data.shape,))
+
         self._data = data
+
     def repr(self, prefix=''):
         leading = '<%s ' % (self.__class__.__name__,)
         return leading + numpy.array2string(self._data, prefix=prefix+' '*len(leading))
@@ -171,6 +190,33 @@ class Box(object):
     def copy(self):
         return self.fromData(self._data.copy())
 
+    @classmethod
+    def fromSize(klass, size, aspect=None, dtype=None):
+        if dtype is None: dtype = klass.dtype_default
+
+        if aspect is not None:
+            size = klass.toAspect(size, aspect)
+
+        data = klass._asDataArray([numpy.zeros_like(size), size], dtype)
+        return klass.fromData(data)
+
+    @classmethod
+    def fromPosSize(klass, pos, size, aspect=None, dtype=None):
+        if dtype is None: dtype = klass.dtype_default
+
+        if aspect is not None:
+            size = klass.toAspect(size, aspect)
+
+        data = klass._asDataArray([pos, size], dtype)
+        data[1] += data[0]
+        return klass.fromData(data)
+
+    @classmethod
+    def fromCorners(klass, p0, p1, dtype=None):
+        if dtype is None: dtype = klass.dtype_default
+        data = klass._asDataArray([p0, p1], dtype)
+        return klass.fromData(data)
+
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     #~ Data access descriptors
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -178,9 +224,10 @@ class Box(object):
     p0 = BoxItemProperty(numpy.s_[..., 0, :])
     p1 = BoxItemProperty(numpy.s_[..., 1, :])
 
-    xv = BoxItemProperty(numpy.s_[..., :, 0])
-    yv = BoxItemProperty(numpy.s_[..., :, 1])
-    zv = BoxItemProperty(numpy.s_[..., :, 2])
+    pv = BoxItemProperty(numpy.s_[...,])
+    xv = BoxItemProperty(numpy.s_[..., 0])
+    yv = BoxItemProperty(numpy.s_[..., 1])
+    zv = BoxItemProperty(numpy.s_[..., 2])
 
     left = BoxItemProperty(numpy.s_[..., 0, 0])
     bottom = BoxItemProperty(numpy.s_[..., 0, 1])
@@ -191,6 +238,8 @@ class Box(object):
     far = BoxItemProperty(numpy.s_[..., 1, 2])
 
     # aliases
+    pos = p0
+    corner = p1
     x0 = l = left
     y0 = t = top
     z0 = near
@@ -198,6 +247,12 @@ class Box(object):
     x1 = r = right
     y1 = b = bottom
     z1 = far
+
+    def getDtype(self):
+        return self._data.dtype
+    def setDtype(self, dtype):
+        self._data.dtype = dtype
+    dtype = property(getDtype, setDtype)
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     #~ Box methods
@@ -211,11 +266,13 @@ class Box(object):
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    asblend = asblend
-
     @property
     def at(self):
         return AtSyntax(self)
+
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    asblend = asblend
 
     def atPos(self, rel=None):
         ar = self.asblend(rel)
@@ -225,44 +282,50 @@ class Box(object):
         data = self._data
         data[:] += -(data*ar).sum(-2) + value
 
-    def sizeAt(self, rel, size=None, sidx=Ellipsis, xfrm=-_xfrmSize):
+    def posForSizeAt(self, rel, size=None, sidx=Ellipsis, xfrm=-_xfrmSize):
         ar = self.asblend(rel)
         v = (self._data[sidx]*ar).sum(-2) + xfrm*(ar*size)
         v.sort(-2)
         return v
 
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
     def getSize(self, xfrm=_xfrmSize):
         return (self._data*xfrm).sum(-2)
     def setSize(self, size, at=None, sidx=Ellipsis):
-        self._data[sidx] = self.sizeAt(at, size, sidx)
-    size = property(getSize)
+        self._data[sidx] = self.posForSizeAt(at, size, sidx)
+    size = property(getSize, setSize)
 
     def getWidth(self, xfrm=_xfrmSize, sidx=numpy.s_[...,0,None]):
         return (self._data[sidx]*xfrm).sum(-2)
     def setWidth(self, size, at=None, sidx=numpy.s_[...,0,None]):
-        self._data[sidx] = self.sizeAt(at, size, sidx)
+        self._data[sidx] = self.posForSizeAt(at, size, sidx)
     w = width = property(getWidth, setWidth)
 
     def getHeight(self, xfrm=_xfrmSize, sidx=numpy.s_[...,1,None]):
         return (self._data[sidx]*xfrm).sum(-2)
     def setHeight(self, size, at=None, sidx=numpy.s_[...,1,None]):
-        self._data[sidx] = self.sizeAt(at, size, sidx)
+        self._data[sidx] = self.posForSizeAt(at, size, sidx)
     h = height = property(getHeight, setHeight)
 
     def getDepth(self, xfrm=_xfrmSize, sidx=numpy.s_[...,2,None]):
         return (self._data[sidx]*xfrm).sum(-2)
     def setDepth(self, size, at=None, sidx=numpy.s_[...,2,None]):
-        self._data[sidx] = self.sizeAt(at, size, sidx)
+        self._data[sidx] = self.posForSizeAt(at, size, sidx)
     d = depth = property(getDepth, setDepth)
+
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def getAspect(self, nidx=0, didx=1):
         size = self.getSize().astype(float)
         return size[..., nidx]/size[..., didx]
-    def setAspect(self, aspect, at=None, grow=False, ndix=0, didx=1):
-        asize = self.toAspect(self.size, aspect, grow)
+    def setAspect(self, aspect, at=None, ndix=0, didx=1):
+        asize = self.toAspect(self.size, aspect)
         return self.setSize(asize, at)
     aspect = property(getAspect, setAspect)
 
+    def sizeInAspect(self, aspect, ndix=0, didx=1):
+        return self.toAspect(self.size, aspect)
     toAspect = staticmethod(toAspect)
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

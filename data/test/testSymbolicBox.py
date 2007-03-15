@@ -71,9 +71,54 @@ class TestBoxSymbolic(unittest.TestCase):
         result = '[(r + -l) (t + -b)]'
         self.doPrintTest(self.sbox.size, result)
 
-        #print
-        #print boxn.atPos(sym.a)
-        #print box.atPos((sym.xa, sym.ya))
+    def test_at_exact(self):
+        self.doPrintTest(self.sbox.at[0], '[l b]')
+        self.doPrintTest(self.sbox.at[1], '[r t]')
+
+    def test_at(self):
+        resultSymX = '((r * a) + (l * (-a + 1.0)))'
+        resultSymY = '((t * a) + (b * (-a + 1.0)))'
+        self.doPrintTest(self.sbox.at[sym.a], '[%s %s]' % (resultSymX, resultSymY))
+
+        resultX = '((r * 0.5) + (l * 0.5))'
+        resultY = '((t * 0.5) + (b * 0.5))'
+        self.doPrintTest(self.sbox.at[.5], '[%s %s]' % (resultX, resultY))
+
+        resultX = '((r * 0.25) + (l * 0.75))'
+        resultY = '((t * 0.25) + (b * 0.75))'
+        self.doPrintTest(self.sbox.at[.25], '[%s %s]' % (resultX, resultY))
+
+    def test_at_exact_size(self):
+        result = '[(r + -l) (t + -b)]'
+        self.doPrintTest(self.sbox.at[:], result)
+        self.doPrintTest(self.sbox.at[0:], result)
+        self.doPrintTest(self.sbox.at[0:1], result)
+        self.doPrintTest(self.sbox.at[:1], result)
+
+    def test_at_size(self):
+        resultSymX = '((r + -l) * (s1 - s0))'
+        resultSymY = '((t + -b) * (s1 - s0))'
+        self.doPrintTest(self.sbox.at[sym.s0:sym.s1], '[%s %s]' % (resultSymX, resultSymY))
+
+    def test_offset(self):
+        result = '[[(l + d) (b + d)] [(r + d) (t + d)]]'
+        self.sbox.offset(sym.d)
+        self.doPrintTest(self.sbox, result)
+
+    def test_offset_2d(self):
+        result = '[[(l + dx) (b + dy)] [(r + dx) (t + dy)]]'
+        self.sbox.offset((sym.dx, sym.dy))
+        self.doPrintTest(self.sbox, result)
+
+    def test_inset(self):
+        result = '[[(l + d) (b + d)] [(r + -d) (t + -d)]]'
+        self.sbox.inset(sym.d)
+        self.doPrintTest(self.sbox, result)
+
+    def test_inset_2d(self):
+        result = '[[(l + dx) (b + dy)] [(r + -dx) (t + -dy)]]'
+        self.sbox.inset((sym.dx, sym.dy))
+        self.doPrintTest(self.sbox, result)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Vector version of the test

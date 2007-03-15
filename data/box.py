@@ -10,6 +10,7 @@
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+from operator import truediv
 import numpy
 from numpy import asarray
 
@@ -62,7 +63,7 @@ def toAspect(size, aspect, nidx=0, didx=1):
         else:
             raise RuntimeError('Unknown grow constant %r' % (grow,))
 
-    acurrent = float(size[nidx])/size[didx]
+    acurrent = truediv(size[nidx], size[didx])
     if bool(grow) ^ (aspect > acurrent):
         # new h is greater than old h
         size[..., didx] = size[nidx] / aspect
@@ -107,7 +108,7 @@ class AtSyntax(object):
             if rsize1 is None: 
                 rsize1 = 1
 
-            return box.size * float(rsize1-rsize0)
+            return box.size * (rsize1-rsize0)
         else:
             return self.box.atPos(key)
     def __setitem__(self, key, value):
@@ -258,10 +259,9 @@ class Box(object):
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def inset(self, delta, xfrm=-_xfrmSize):
-        delta = xfrm*delta
-        self.offset(delta)
+        self.offset(xfrm*delta)
     def offset(self, delta):
-        self._data += delta
+        self._data = self._data + delta 
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -316,15 +316,15 @@ class Box(object):
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def getAspect(self, nidx=0, didx=1):
-        size = self.getSize().astype(float)
-        return size[..., nidx]/size[..., didx]
+        size = self.getSize()
+        return truediv(size[..., nidx], size[..., didx])
     def setAspect(self, aspect, at=None, ndix=0, didx=1):
-        asize = self.toAspect(self.size, aspect)
+        asize = self.toAspect(self.size, aspect, nidx, didx)
         return self.setSize(asize, at)
     aspect = property(getAspect, setAspect)
 
     def sizeInAspect(self, aspect, ndix=0, didx=1):
-        return self.toAspect(self.size, aspect)
+        return self.toAspect(self.size, aspect, nidx, didx)
     toAspect = staticmethod(toAspect)
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

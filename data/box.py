@@ -11,8 +11,15 @@
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 from operator import truediv
+
 import numpy
 from numpy import asarray
+
+try:
+    from TG.metaObserving import obproperty
+except ImportError:
+    def obproperty(obObjectFactory, *args, **kw):
+        raise NotImplementedError("Could not import obproperty from TG.metaObserving")
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Transforms used in Box object
@@ -132,7 +139,7 @@ class AtSyntax(object):
             box.atPosSet(key, value)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#~ Box class -- what it is all about
+#~ Box class -- the subject of the module
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class Box(object):
@@ -162,6 +169,8 @@ class Box(object):
                 raise ValueError("Box requires data.shape[-2] == 2.  Data.shape is %r" % (data.shape,))
 
         self._data = data
+
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def repr(self, prefix=''):
         leading = '<%s ' % (self.__class__.__name__,)
@@ -399,6 +408,8 @@ class Box(object):
     def __neg__(self, other, *modulo):  return self._data.__neg__(other)
     def __pos__(self, other, *modulo):  return self._data.__pos__(other)
     def __abs__(self, other, *modulo):  return self._data.__abs__(other)
+
+Box.property = obproperty
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

@@ -52,25 +52,58 @@ class TestBoxSymbolic(unittest.TestCase):
         self.doPrintTest(self.sbox.l, result)
         self.doPrintTest(self.sbox.left, result)
         self.doPrintTest(self.sbox.p0[..., 0], result)
+    def test_accessors_left_modify(self):
+        self.sbox.x0 = sym.new_x0
+        self.doPrintTest(self.sbox.x0, 'new_x0')
+        self.sbox.l = sym.new_l
+        self.doPrintTest(self.sbox.l, 'new_l')
+        self.sbox.left = sym.new_left
+        self.doPrintTest(self.sbox.left, 'new_left')
+
     def test_accessors_right(self):
         result = 'r'
         self.doPrintTest(self.sbox.x1, result)
         self.doPrintTest(self.sbox.r, result)
         self.doPrintTest(self.sbox.right, result)
         self.doPrintTest(self.sbox.p1[..., 0], result)
+    def test_accessors_right_modify(self):
+        self.sbox.x1 = sym.new_x1
+        self.doPrintTest(self.sbox.x1, 'new_x1')
+        self.sbox.r = sym.new_r
+        self.doPrintTest(self.sbox.r, 'new_r')
+        self.sbox.right = sym.new_right
+        self.doPrintTest(self.sbox.right, 'new_right')
 
-    def test_accessor_width(self):
+    def test_accessors_width(self):
         result = '[(r + -l)]'
         self.doPrintTest(self.sbox.w, result)
         self.doPrintTest(self.sbox.width, result)
-    def test_accessor_height(self):
+    def test_accessors_width_modify(self):
+        self.sbox.width = sym.w
+        self.doPrintTest(self.sbox.xv, '[(l + w) l]')
+
+        result_x0 = '(((l * p) + ((l + w) * (-p + 1.0))) + ((-p + 1.0) * w))'
+        result_x1 = '(((l * p) + ((l + w) * (-p + 1.0))) + -(p * w))'
+        self.sbox.setWidth(sym.w, sym.p)
+        self.doPrintTest(self.sbox.xv, '[%s %s]' % (result_x0, result_x1))
+
+    def test_accessors_height(self):
         result = '[(t + -b)]'
         self.doPrintTest(self.sbox.h, result)
         self.doPrintTest(self.sbox.height, result)
-    def test_accessor_size(self):
+    def test_accessors_height_modify(self):
+        self.sbox.height = sym.h
+        self.doPrintTest(self.sbox.yv, '[(b + h) b]')
+
+        result_y0 = '(((b * 0.25) + ((b + h) * 0.75)) + (0.75 * h))'
+        result_y1 = '(((b * 0.25) + ((b + h) * 0.75)) + -(0.25 * h))'
+        self.sbox.setHeight(sym.h, .25)
+        self.doPrintTest(self.sbox.yv, '[%s %s]' % (result_y0, result_y1))
+
+    def test_accessors_size(self):
         result = '[(r + -l) (t + -b)]'
         self.doPrintTest(self.sbox.size, result)
-
+    
     def test_at_exact(self):
         self.doPrintTest(self.sbox.at[0], '[l b]')
         self.doPrintTest(self.sbox.at[1], '[r t]')
@@ -99,7 +132,7 @@ class TestBoxSymbolic(unittest.TestCase):
         resultSymX = '((r + -l) * (s1 - s0))'
         resultSymY = '((t + -b) * (s1 - s0))'
         self.doPrintTest(self.sbox.at[sym.s0:sym.s1], '[%s %s]' % (resultSymX, resultSymY))
-
+    
     def test_offset(self):
         result = '[[(l + d) (b + d)] [(r + d) (t + d)]]'
         self.sbox.offset(sym.d)
@@ -119,7 +152,7 @@ class TestBoxSymbolic(unittest.TestCase):
         result = '[[(l + dx) (b + dy)] [(r + -dx) (t + -dy)]]'
         self.sbox.inset((sym.dx, sym.dy))
         self.doPrintTest(self.sbox, result)
-
+    
     def test_scaleAt(self):
         resultLeft = '(((r * p) + (l * (-p + 1.0))) + ((-p + 1.0) * ((r + -l) * s)))'
         self.sbox.scaleAt(sym.s, sym.p) 
@@ -183,15 +216,15 @@ class TestBoxVectorSymbolic(unittest.TestCase):
         self.doPrintTest(self.sbox.right, result)
         self.doPrintTest(self.sbox.p1[..., 0], result)
 
-    def test_accessor_width(self):
+    def test_accessors_width(self):
         result = '[[(r + -l)] [(r1 + -l1)]]'
         self.doPrintTest(self.sbox.w, result)
         self.doPrintTest(self.sbox.width, result)
-    def test_accessor_height(self):
+    def test_accessors_height(self):
         result = '[[(t + -b)] [(t1 + -b1)]]'
         self.doPrintTest(self.sbox.h, result)
         self.doPrintTest(self.sbox.height, result)
-    def test_accessor_size(self):
+    def test_accessors_size(self):
         result = '[[(r + -l) (t + -b)] [(r1 + -l1) (t1 + -b1)]]'
         self.doPrintTest(self.sbox.size, result)
 

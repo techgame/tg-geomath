@@ -23,6 +23,8 @@ import operator as opmodule
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class SymbolicMathMixin(object):
+    def __cmp__(self, other):
+        return cmp(repr(self), repr(other))
     def __add__(self, other):
         if other == 0: return self
         else: return Operator('+', self, other)

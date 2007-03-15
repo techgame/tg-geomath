@@ -10,26 +10,20 @@
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-from numpy import ndarray
 from TG.kvObserving import KVObject
+from .import box
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class KVArray(ndarray, KVObject):
-    __array_priority__ = -5
+class KVBox(KVObject, box.Box):
+    @property
+    def _data_changed_(self):
+        self.kvpub('*')
 
-    def __setitem__(self, i, item): 
-        ndarray.__setitem__(self, i, item)
-        self.kvpub('*')
-    def __delitem__(self, i): 
-        ndarray.__delitem__(self, i)
-        self.kvpub('*')
-    def __setslice__(self, i, j, other):
-        ndarray.__setslice__(self, i, j, other)
-        self.kvpub('*')
-    def __delslice__(self, i, j):
-        ndarray.__delslice__(self, i, j)
-        self.kvpub('*')
+class KVCenterBox(KVBox):
+    at_rel_default = box.CenterBox.at_rel_default
+
+del box, KVObject
 

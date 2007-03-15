@@ -88,6 +88,7 @@ class BoxItemProperty(object):
         return obj._data[self.key]
     def __set__(self, obj, value):
         obj._data[self.key] = value
+        obj._data_changed_
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -95,11 +96,10 @@ class AtSyntax(object):
     def __init__(self, box):
         self.box = box
     def __getitem__(self, key):
+        box = self.box
         if isinstance(key, slice):
             if key.step is not None:
                 raise ValueError("At syntax does not support slice step value")
-            #raise NotImplementedError('At slice syntax not yet defined')
-            box = self.box
 
             rsize0 = key.start
             rsize1 = key.stop
@@ -110,13 +110,12 @@ class AtSyntax(object):
 
             return box.size * (rsize1-rsize0)
         else:
-            return self.box.atPos(key)
+            return box.atPos(key)
     def __setitem__(self, key, value):
+        box = self.box
         if isinstance(key, slice):
             if key.step is not None:
                 raise ValueError("At syntax does not support slice step value")
-            #raise NotImplementedError('At slice syntax not yet defined')
-            box = self.box
 
             rsize0 = key.start
             rsize1 = key.stop
@@ -130,7 +129,7 @@ class AtSyntax(object):
             value = idrsize*asarray(value)
             box.setSize(value, 0.5*(rsize1+rsize0))
         else:
-            self.box.atPosSet(key, value)
+            box.atPosSet(key, value)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Box class -- what it is all about
@@ -143,6 +142,7 @@ class Box(object):
     DataFactory = lambda self, dtype: numpy.zeros((2,2), dtype)
     _asDataArray = staticmethod(asarray)
     _data = None
+    _data_changed_ = None
 
     def __init__(self, data=None, p1=None, dtype=None):
         if dtype is None: 
@@ -252,6 +252,7 @@ class Box(object):
         return self._data.dtype
     def setDtype(self, dtype):
         self._data.dtype = dtype
+        self._data_changed_
     dtype = property(getDtype, setDtype)
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -262,9 +263,11 @@ class Box(object):
         self.offset(xfrm*delta)
     def offset(self, delta):
         self._data += delta
+        self._data_changed_
 
     def scaleAt(self, scale, at=None, sidx=Ellipsis):
         self._data[sidx] =  self.posForSizeAt(at, self.size*scale, sidx)
+        self._data_changed_
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -296,24 +299,28 @@ class Box(object):
         return (self._data*xfrm).sum(-2)
     def setSize(self, size, at=None, sidx=Ellipsis):
         self._data[sidx] = self.posForSizeAt(at, size, sidx)
+        self._data_changed_
     size = property(getSize, setSize)
 
     def getWidth(self, xfrm=_xfrmSize, sidx=numpy.s_[...,0,None]):
         return (self._data[sidx]*xfrm).sum(-2)
     def setWidth(self, size, at=None, sidx=numpy.s_[...,0,None]):
         self._data[sidx] = self.posForSizeAt(at, size, sidx)
+        self._data_changed_
     w = width = property(getWidth, setWidth)
 
     def getHeight(self, xfrm=_xfrmSize, sidx=numpy.s_[...,1,None]):
         return (self._data[sidx]*xfrm).sum(-2)
     def setHeight(self, size, at=None, sidx=numpy.s_[...,1,None]):
         self._data[sidx] = self.posForSizeAt(at, size, sidx)
+        self._data_changed_
     h = height = property(getHeight, setHeight)
 
     def getDepth(self, xfrm=_xfrmSize, sidx=numpy.s_[...,2,None]):
         return (self._data[sidx]*xfrm).sum(-2)
     def setDepth(self, size, at=None, sidx=numpy.s_[...,2,None]):
         self._data[sidx] = self.posForSizeAt(at, size, sidx)
+        self._data_changed_
     d = depth = property(getDepth, setDepth)
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -355,38 +362,39 @@ class Box(object):
         return r
     def __setitem__(self, key, value): 
         self._data[key] = value
+        self._data_changed_
 
     def __add__(self, other): return self._data.__add__(other)
     def __radd__(self, other): return self._data.__radd__(other)
-    def __iadd__(self, other): self._data.__iadd__(other); return self
+    def __iadd__(self, other): self._data.__iadd__(other); self._data_changed_; return self
 
     def __sub__(self, other): return self._data.__sub__(other)
     def __rsub__(self, other): return self._data.__rsub__(other)
-    def __isub__(self, other): self._data.__isub__(other); return self
+    def __isub__(self, other): self._data.__isub__(other); self._data_changed_; return self
 
     def __mod__(self, other): return self._data.__mod__(other)
     def __rmod__(self, other): return self._data.__rmod__(other)
-    def __imod__(self, other): self._data.__imod__(other); return self
+    def __imod__(self, other): self._data.__imod__(other); self._data_changed_; return self
 
     def __mul__(self, other): return self._data.__mul__(other)
     def __rmul__(self, other): return self._data.__rmul__(other)
-    def __imul__(self, other): self._data.__imul__(other); return self
+    def __imul__(self, other): self._data.__imul__(other); self._data_changed_; return self
 
     def __div__(self, other): return self._data.__div__(other)
     def __rdiv__(self, other): return self._data.__rdiv__(other)
-    def __idiv__(self, other): self._data.__idiv__(other); return self
+    def __idiv__(self, other): self._data.__idiv__(other); self._data_changed_; return self
 
     def __truediv__(self, other): return self._data.__truediv__(other)
     def __rtruediv__(self, other): return self._data.__rtruediv__(other)
-    def __itruediv__(self, other): self._data.__itruediv__(other); return self
+    def __itruediv__(self, other): self._data.__itruediv__(other); self._data_changed_; return self
 
     def __floordiv__(self, other): return self._data.__floordiv__(other)
     def __rfloordiv__(self, other): return self._data.__rfloordiv__(other)
-    def __ifloordiv__(self, other): self._data.__ifloordiv__(other); return self
+    def __ifloordiv__(self, other): self._data.__ifloordiv__(other); self._data_changed_; return self
 
     def __pow__(self, other, *modulo):  return self._data.__pow__(other, *modulo)
     def __rpow__(self, other, *modulo):  return self._data.__rpow__(other)
-    def __ipow__(self, other, *modulo):  self._data.__ipow__(other); return self
+    def __ipow__(self, other, *modulo):  self._data.__ipow__(other); self._data_changed_; return self
 
     def __neg__(self, other, *modulo):  return self._data.__neg__(other)
     def __pos__(self, other, *modulo):  return self._data.__pos__(other)

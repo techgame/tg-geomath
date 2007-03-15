@@ -194,12 +194,17 @@ class ExprEvaluator(object):
         self.values = dict(values)
         self.values.update(kwvalues)
 
+    def update(self, values=(), **kwvalues):
+        self.values.update(values)
+        self.values.update(kwvalues)
+
     @classmethod
     def evaluate(klass, expr, values=(), **kwvalues):
         self = klass(values, **kwvalues)
         return self.visit(expr)
 
-    def visit(self, item):
+    def visit(self, item, **kwvalues):
+        self.update(kwvalues)
         accept = getattr(item, 'accept', None)
         if accept is None:
             return self.visitBasic(item)

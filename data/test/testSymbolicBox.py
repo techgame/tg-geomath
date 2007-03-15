@@ -19,6 +19,11 @@ from TG.geomath.data.symbolic import sym, evalExpr
 #~ Definitions 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+def doPrintTest(self, question, answer):
+    strQuestion = str(question).replace('\n','')
+    strAnswer = str(answer).replace('\n','')
+    self.failUnlessEqual(strQuestion, strAnswer)
+
 class TestBoxSymbolic(unittest.TestCase):
     Box = Box
 
@@ -26,9 +31,7 @@ class TestBoxSymbolic(unittest.TestCase):
         self.boxData = numpy.array([[sym.l, sym.b], [sym.r, sym.t]])
         self.sbox = self.Box(self.boxData.copy())
 
-    def doPrintTest(self, question, reprAnswer):
-        reprQuestion = str(question).replace('\n','')
-        self.failUnlessEqual(reprQuestion, reprAnswer)
+    doPrintTest = doPrintTest
 
     def test_box(self):
         result = '[[l b] [r t]]'
@@ -108,6 +111,9 @@ class TestBoxSymbolic(unittest.TestCase):
         self.doPrintTest(self.sbox.at[0], '[l b]')
         self.doPrintTest(self.sbox.at[1], '[r t]')
 
+        self.doPrintTest(self.sbox.pv[..., 0, :], self.sbox.at[0])
+        self.doPrintTest(self.sbox.pv[..., 1, :], self.sbox.at[1])
+
     def test_at(self):
         resultSymX = '((r * a) + (l * (-a + 1.0)))'
         resultSymY = '((t * a) + (b * (-a + 1.0)))'
@@ -162,6 +168,39 @@ class TestBoxSymbolic(unittest.TestCase):
         self.doPrintTest(self.sbox.right, resultRight)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class TestBoxSymbolicBlend(unittest.TestCase):
+    Box = Box
+
+    doPrintTest = doPrintTest
+
+    def testBlend1d(self):
+        bv = self.Box([
+                [[sym.l0], [sym.r0]],
+                [[sym.l1], [sym.r1]]
+                ], dtype='object')
+        b0 = bv[0]; b1 = bv[1]
+
+        result_l = '[((l1 * a) + (l0 * (-a + 1.0)))]'
+        result_r = '[((r1 * a) + (r0 * (-a + 1.0)))]'
+        self.doPrintTest(b0.blend(sym.a, b1), '[%s %s]' % (result_l, result_r))
+
+        self.doPrintTest(b0.blend(.25, b1), bv.blendAt[.25])
+
+    def testBlend2d(self):
+        bv = self.Box([
+                [[sym.l0, sym.b0], [sym.r0, sym.t0]],
+                [[sym.l1, sym.b1], [sym.r1, sym.t1]]
+                ], dtype='object')
+        b0 = bv[0]; b1 = bv[1]
+
+        result_l = '[((l1 * a) + (l0 * (-a + 1.0))) ((b1 * a) + (b0 * (-a + 1.0)))]'
+        result_r = '[((r1 * a) + (r0 * (-a + 1.0))) ((t1 * a) + (t0 * (-a + 1.0)))]'
+        self.doPrintTest(b0.blend(sym.a, b1), '[%s %s]' % (result_l, result_r))
+
+        self.doPrintTest(b0.blend(.25, b1), bv.blendAt[.25])
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Vector version of the test
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -175,9 +214,7 @@ class TestBoxVectorSymbolic(unittest.TestCase):
 
         self.sbox = self.Box(self.boxData.copy())
 
-    def doPrintTest(self, question, reprAnswer):
-        reprQuestion = str(question).replace('\n','')
-        self.failUnlessEqual(reprQuestion, reprAnswer)
+    doPrintTest = doPrintTest
 
     def test_box(self):
         result = '[[[l b]  [r t]] [[l1 b1]  [r1 t1]]]'
@@ -228,6 +265,12 @@ class TestBoxVectorSymbolic(unittest.TestCase):
         result = '[[(r + -l) (t + -b)] [(r1 + -l1) (t1 + -b1)]]'
         self.doPrintTest(self.sbox.size, result)
 
+    def test_at_exact(self):
+        self.doPrintTest(self.sbox.at[0], '[[l b] [l1 b1]]')
+        self.doPrintTest(self.sbox.at[1], '[[r t] [r1 t1]]')
+
+        self.doPrintTest(self.sbox.pv[..., 0, :], self.sbox.at[0])
+        self.doPrintTest(self.sbox.pv[..., 1, :], self.sbox.at[1])
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Unittest Main 

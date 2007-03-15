@@ -44,9 +44,12 @@ xfrmTriStrip = numpy.array([
 #~ Definitions 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-def asblend(host, rel, xfrm=_xfrmSize_f[:,None], xoff=_xfrmOff_f[:,None]):
+def asBlend(host, rel, xfrm=_xfrmSize_f[:,None], xoff=_xfrmOff_f[:,None]):
     if rel is None: rel = host.at_rel_default
     return asarray(rel)*xfrm + xoff
+def boxBlend(alpha, boxData):
+    ar = asBlend(None, alpha)[:,None]
+    return (boxData*ar).sum(-3)
 
 def toAspect(size, aspect, nidx=0, didx=1):
     if isinstance(aspect, tuple):
@@ -137,6 +140,21 @@ class AtSyntax(object):
             box.setSize(value, 0.5*(rsize1+rsize0))
         else:
             box.atPosSet(key, value)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class BlendAtSyntax(object):
+    _boxBlendData = staticmethod(boxBlend)
+    def __init__(self, box):
+        if not box.isBoxVector():
+            raise ValueError("blendAt syntax only works for Box Vectors")
+        self.box = box
+    def __getitem__(self, alpha):
+        box = self.box
+
+        idx0 = (alpha % 1)
+        boxData = box._data[..., idx0:idx0+2, :, :]
+        return box.fromData(self._boxBlendData(alpha, boxData))
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Box class -- the subject of the module
@@ -264,6 +282,20 @@ class Box(object):
         self._data_changed_
     dtype = property(getDtype, setDtype)
 
+    def getShape(self):
+        return self._data.shape
+    def setShape(self, shape):
+        self._data.shape = shape
+        self._data_changed_
+    shape = property(getShape, setShape)
+
+    def getNdim(self):
+        return self._data.ndim
+    ndim = property(getNdim)
+
+    def isBoxVector(self):
+        return self.ndim > 2
+
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     #~ Box methods
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -281,23 +313,32 @@ class Box(object):
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     @property
+    def blendAt(self):
+        return BlendAtSyntax(self)
+
+    _boxBlendData = staticmethod(boxBlend)
+    def blend(self, alpha, other):
+        data = self._boxBlendData(alpha, [self._data, other._data])
+        return self.fromData(data)
+
+    @property
     def at(self):
         return AtSyntax(self)
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    asblend = asblend
+    _asBlend = asBlend
 
     def atPos(self, rel=None):
-        ar = self.asblend(rel)
+        ar = self._asBlend(rel)
         return (self._data*ar).sum(-2)
     def atPosSet(self, rel, value):
-        ar = self.asblend(rel)
+        ar = self._asBlend(rel)
         data = self._data
         data[:] += -(data*ar).sum(-2) + value
 
     def posForSizeAt(self, rel, size=None, sidx=Ellipsis, xfrm=-_xfrmSize):
-        ar = self.asblend(rel)
+        ar = self._asBlend(rel)
         v = (self._data[sidx]*ar).sum(-2) + xfrm*(ar*size)
         v.sort(-2)
         return v
@@ -367,7 +408,7 @@ class Box(object):
     def __getitem__(self, key): 
         r = self._data[key]
         if r.ndim >= 2:
-            r = self.fromData(r.squeeze())
+            r = self.fromData(r)
         return r
     def __setitem__(self, key, value): 
         self._data[key] = value

@@ -29,16 +29,30 @@ _xfrmSize = numpy.array([[-1],[1]], 'b')
 _xfrmSize_f = numpy.array([-1,1], 'f')
 _xfrmOff_f = numpy.array([1,0], 'f')
 
-xfrmQuads = numpy.array([
-        [1,1,0,0],
-        [0,1,1,0],
-        [0,0,1,1],
-        [1,0,0,1]], 'b').reshape((-1,2,2))
-xfrmTriStrip = numpy.array([
-        [1,0,0,1],
-        [1,1,0,0],
-        [0,0,1,1],
-        [0,1,1,0]], 'b').reshape((-1,2,2))
+xfrmQuads2d = numpy.array([
+        [[1,1],[0,0]],
+        [[0,1],[1,0]],
+        [[0,0],[1,1]],
+        [[1,0],[0,1]]], 'b')
+xfrmTriStrip2d = numpy.array([
+        [[1,0],[0,1]],
+        [[1,1],[0,0]],
+        [[0,0],[1,1]],
+        [[0,1],[1,0]]], 'b')
+
+# 3d xform of boxes uses weighted z-coords for planar geometry;
+xfrmQuads3d = numpy.array([
+        [[1,1, 1.],[0,0, 0.]],
+        [[0,1, .5],[1,0, .5]],
+        [[0,0, 0.],[1,1, 1.]],
+        [[1,0, .5],[0,1, .5]]], 'b')
+xfrmTriStrip3d = numpy.array([
+        [[1,0, .5],[0,1, .5]],
+        [[1,1, 1.],[0,0, 0.]],
+        [[0,0, 0.],[1,1, 1.]],
+        [[0,1, .5],[1,0, .5]]], 'b')
+
+xfrmDefaults = {2: xfrmQuads2d, 3: xfrmQuads3d}
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
@@ -269,11 +283,11 @@ class Box(object):
     corner = p1
     x0 = l = left
     y0 = t = top
-    z0 = near
+    z0 = front = near
 
     x1 = r = right
     y1 = b = bottom
-    z1 = far
+    z1 = back = far
 
     def getDtype(self):
         return self._data.dtype
@@ -379,7 +393,7 @@ class Box(object):
         size = self.getSize()
         return truediv(size[..., nidx], size[..., didx])
     def setAspect(self, aspect, at=None, ndix=0, didx=1):
-        asize = self.toAspect(self.size, aspect, nidx, didx)
+        asize = self.sizeInAspect(aspect, nidx, didx)
         return self.setSize(asize, at)
     aspect = property(getAspect, setAspect)
 
@@ -393,7 +407,9 @@ class Box(object):
         return self._data[..., None, :, :]
     geoData = property(getGeoData)
 
-    def geoXfrm(self, xfrm=xfrmQuads):
+    def geoXfrm(self, xfrm=None):
+        if xfrm is None:
+            xfrm = xfrmDefaults[self.ndim]
         return (xfrm * self.getGeoData()).sum(-2)
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

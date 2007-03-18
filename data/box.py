@@ -79,12 +79,24 @@ def toAspect(size, aspect, nidx=0, didx=1):
     if isinstance(aspect, dict):
         grow = aspect.get('grow', grow)
 
+        aspectIdx = aspect.get('idx')
+        if aspectIdx is not None:
+            nidx, didx = aspectIdx
+
         aspectSize = aspect.get('size')
         if aspectSize is not None:
             aspect = truediv(aspectSize[nidx], aspectSize[didx])
         else:
             aspect = aspect['aspect']
     elif isinstance(aspect, tuple):
+        if isinstance(aspect[-1], slice):
+            aspectIdx = aspect[-1]
+            if aspectIdx.start is not None:
+                nidx = aspectIdx.start
+            if aspectIdx.stop is not None:
+                didx = aspectIdx.stop
+            aspect = aspect[:-1]
+
         if isinstance(aspect[1], bool):
             aspect, grow = aspect
         else:
@@ -127,9 +139,13 @@ class BoxItemProperty(object):
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class AtSyntax(object):
+class _BoxIndexSyntaxBase(object):
     def __init__(self, box):
         self.box = box
+    def __repr__(self):
+        return '<%s of %s>' % (self.__class__.__name__, self.box.__class__.__name__)
+
+class AtSyntax(_BoxIndexSyntaxBase):
     def __getitem__(self, key):
         box = self.box
         if isinstance(key, slice):
@@ -168,18 +184,26 @@ class AtSyntax(object):
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class BlendAtSyntax(object):
+class BlendAtSyntax(_BoxIndexSyntaxBase):
     _boxBlendData = staticmethod(boxBlend)
     def __init__(self, box):
         if not box.isBoxVector():
             raise ValueError("blendAt syntax only works for Box Vectors")
-        self.box = box
+        _BoxIndexSyntaxBase.__init__(self, box)
+
     def __getitem__(self, alpha):
         box = self.box
-
         idx0, ialpha = divmod(alpha, 1)
         boxData = box._data[..., idx0:idx0+2, :, :]
         return box.fromData(self._boxBlendData(ialpha, boxData))
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class AspectSizeSyntax(_BoxIndexSyntaxBase):
+    def __getitem__(self, aspect):
+        return self.box.getSizeInAspect(aspect)
+    def __setitem__(self, aspect, size):
+        return self.box.setAspectWithSize(aspect, size)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Box class -- the subject of the module
@@ -405,17 +429,22 @@ class Box(object):
         size = self.getSize()
         return truediv(size[..., nidx], size[..., didx])
     def setAspect(self, aspect, at=None, nidx=0, didx=1):
-        return self.setAspectSize(aspect, self.size, at, nidx, didx)
+        return self.setAspectWithSize(aspect, self.size, at, nidx, didx)
     aspect = property(getAspect, setAspect)
+    toAspect = staticmethod(toAspect)
 
-    def setAspectSize(self, aspect, size, at=None, nidx=0, didx=1):
+    def getSizeInAspect(self, aspect, nidx=0, didx=1):
+        return self.toAspect(self.size, aspect, nidx, didx)
+    def setAspectWithSize(self, aspect, size, at=None, nidx=0, didx=1):
         """Transforms size by aspect, then calls setSize()"""
+        if isinstance(size, (int, long, float)):
+            size = self._asDataArray([size, size])
         asize = self.toAspect(size, aspect, nidx, didx)
         return self.setSize(asize, at) 
 
-    def sizeInAspect(self, aspect, nidx=0, didx=1):
-        return self.toAspect(self.size, aspect, nidx, didx)
-    toAspect = staticmethod(toAspect)
+    @property
+    def asize(self):
+        return AspectSizeSyntax(self)
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

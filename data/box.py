@@ -13,7 +13,7 @@
 from operator import truediv
 
 import numpy
-from numpy import asarray
+from numpy import ndarray, asarray
 
 try:
     from TG.metaObserving import obproperty
@@ -52,7 +52,15 @@ xfrmTriStrip3d = numpy.array([
         [[0,0, 0.],[1,1, 1.]],
         [[0,1, .5],[1,0, .5]]], 'b')
 
-xfrmDefaults = {2: xfrmQuads2d, 3: xfrmQuads3d}
+xfrmTable = {
+    (None, 2): xfrmQuads2d, 
+    ('quads', 2): xfrmQuads2d, 
+    ('tristrip', 2): xfrmTriStrip2d, 
+
+    (None, 3): xfrmQuads3d, 
+    ('quads', 3): xfrmQuads3d, 
+    ('tristrip', 3): xfrmTriStrip3d, 
+}
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
@@ -66,26 +74,29 @@ def boxBlend(alpha, boxData):
     return (boxData*ar).sum(-3)
 
 def toAspect(size, aspect, nidx=0, didx=1):
-    if isinstance(aspect, tuple):
-        aspect, grow = aspect
-    else: grow = None
+    # interpret aspect parameter
+    grow = None
+    if isinstance(aspect, dict):
+        grow = aspect.get('grow', grow)
 
-    size = asarray(size)
+        aspectSize = aspect.get('size')
+        if aspectSize is not None:
+            aspect = truediv(aspectSize[nidx], aspectSize[didx])
+        else:
+            aspect = aspect['aspect']
+    elif isinstance(aspect, tuple):
+        if isinstance(aspect[1], bool):
+            aspect, grow = aspect
+        else:
+            aspectSize = aspect
+            aspect = truediv(aspectSize[nidx], aspectSize[didx])
+
+    # compute
+    if not isinstance(size, ndarray):
+        size = asarray(size, float)
 
     if aspect <= 0:
         return size
-
-    if isinstance(grow, basestring):
-        if grow == 'w':
-            size[..., nidx] = aspect * size[..., didx]
-            return size
-
-        elif grow == 'h':
-            size[..., didx] = aspect * size[..., nidx]
-            return size
-
-        else:
-            raise RuntimeError('Unknown grow constant %r' % (grow,))
 
     acurrent = truediv(size[nidx], size[didx])
     if bool(grow) ^ (aspect > acurrent):
@@ -193,11 +204,11 @@ class Box(object):
         else:
             if p1 is not None:
                 data = [data, p1]
-            elif numpy.ndim(data) == 1:
-                data = [numpy.zeros_like(data), data]
-
             data = self._asDataArray(data, dtype)
-            if data.shape[-2] != 2:
+            if data.ndim == 1:
+                # we were passed a flat list... treat it as p0 = 0*data, p1 = data
+                data = numpy.vstack([numpy.zeros_like(data), data])
+            elif data.shape[-2] != 2:
                 raise ValueError("Box requires data.shape[-2] == 2.  Data.shape is %r" % (data.shape,))
 
         self._data = data
@@ -350,6 +361,7 @@ class Box(object):
         ar = self._asBlend(rel)
         data = self._data
         data[:] += -(data*ar).sum(-2) + value
+        self._data_changed_
 
     def posForSizeAt(self, rel, size=None, sidx=Ellipsis, xfrm=-_xfrmSize):
         ar = self._asBlend(rel)
@@ -392,12 +404,16 @@ class Box(object):
     def getAspect(self, nidx=0, didx=1):
         size = self.getSize()
         return truediv(size[..., nidx], size[..., didx])
-    def setAspect(self, aspect, at=None, ndix=0, didx=1):
-        asize = self.sizeInAspect(aspect, nidx, didx)
-        return self.setSize(asize, at)
+    def setAspect(self, aspect, at=None, nidx=0, didx=1):
+        return self.setAspectSize(aspect, self.size, at, nidx, didx)
     aspect = property(getAspect, setAspect)
 
-    def sizeInAspect(self, aspect, ndix=0, didx=1):
+    def setAspectSize(self, aspect, size, at=None, nidx=0, didx=1):
+        """Transforms size by aspect, then calls setSize()"""
+        asize = self.toAspect(size, aspect, nidx, didx)
+        return self.setSize(asize, at) 
+
+    def sizeInAspect(self, aspect, nidx=0, didx=1):
         return self.toAspect(self.size, aspect, nidx, didx)
     toAspect = staticmethod(toAspect)
 
@@ -407,9 +423,10 @@ class Box(object):
         return self._data[..., None, :, :]
     geoData = property(getGeoData)
 
-    def geoXfrm(self, xfrm=None):
-        if xfrm is None:
-            xfrm = xfrmDefaults[self.ndim]
+    def geoXfrm(self, xfrm='quads', xfrmTable=xfrmTable):
+        xfrm = xfrmTable[xfrm, self.shape[-1]]
+        return self.xfrm(xfrm)
+    def xfrm(self, xfrm=None):
         return (xfrm * self.getGeoData()).sum(-2)
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -88,6 +88,9 @@ def toAspect(size, aspect, nidx=0, didx=1):
             aspect = truediv(aspectSize[nidx], aspectSize[didx])
         else:
             aspect = aspect['aspect']
+    elif isinstance(aspect, ndarray):
+        aspectSize = aspect
+        aspect = truediv(aspectSize[nidx], aspectSize[didx])
     elif isinstance(aspect, tuple):
         if isinstance(aspect[-1], slice):
             aspectIdx = aspect[-1]
@@ -438,7 +441,7 @@ class Box(object):
     def setAspectWithSize(self, aspect, size, at=None, nidx=0, didx=1):
         """Transforms size by aspect, then calls setSize()"""
         if isinstance(size, (int, long, float)):
-            size = self._asDataArray([size, size])
+            size = self._asDataArray([size, size], float)
         asize = self.toAspect(size, aspect, nidx, didx)
         return self.setSize(asize, at) 
 

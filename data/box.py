@@ -472,7 +472,7 @@ class Box(object):
 
     def __getitem__(self, key): 
         r = self._data[key]
-        if r.ndim >= 2:
+        if r.ndim >= 2 and r.shape[-2] == 2:
             r = self.fromData(r)
         return r
     def __setitem__(self, key, value): 

@@ -202,11 +202,19 @@ class BlendAtSyntax(_BoxIndexSyntaxBase):
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class AspectSizeSyntax(_BoxIndexSyntaxBase):
+class AtAspectSyntax(_BoxIndexSyntaxBase):
     def __getitem__(self, aspect):
-        return self.box.getSizeInAspect(aspect)
+        if isinstance(aspect, tuple):
+            aspect, at = aspect
+            return self.box.getPointsInAspect(aspect, at)
+        else:
+            return self.box.getSizeInAspect(aspect)
+
     def __setitem__(self, aspect, size):
-        return self.box.setAspectWithSize(aspect, size)
+        if isinstance(aspect, tuple):
+            aspect, at = aspect
+        else: at = None
+        return self.box.setAspectWithSize(aspect, size, at)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Box class -- the subject of the module
@@ -438,16 +446,17 @@ class Box(object):
 
     def getSizeInAspect(self, aspect, nidx=0, didx=1):
         return self.toAspect(self.size, aspect, nidx, didx)
+    def getPointsInAspect(self, aspect, at=None, nidx=0, didx=1):
+        asize = self.toAspect(self.size, aspect, nidx, didx)
+        return self.posForSizeAt(at, asize)
     def setAspectWithSize(self, aspect, size, at=None, nidx=0, didx=1):
         """Transforms size by aspect, then calls setSize()"""
-        if isinstance(size, (int, long, float)):
-            size = self._asDataArray([size, size], float)
         asize = self.toAspect(size, aspect, nidx, didx)
         return self.setSize(asize, at) 
 
     @property
-    def asize(self):
-        return AspectSizeSyntax(self)
+    def atAspect(self):
+        return AtAspectSyntax(self)
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

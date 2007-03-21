@@ -42,15 +42,15 @@ xfrmTriStrip2d = numpy.array([
 
 # 3d xform of boxes uses weighted z-coords for planar geometry;
 xfrmQuads3d = numpy.array([
-        [[1,1, 1.],[0,0, 0.]],
-        [[0,1, .5],[1,0, .5]],
-        [[0,0, 0.],[1,1, 1.]],
-        [[1,0, .5],[0,1, .5]]], 'b')
+        [[1,1,0],[0,0,0]],
+        [[0,1,0],[1,0,0]],
+        [[0,0,0],[1,1,0]],
+        [[1,0,0],[0,1,0]]], 'b')
 xfrmTriStrip3d = numpy.array([
-        [[1,0, .5],[0,1, .5]],
-        [[1,1, 1.],[0,0, 0.]],
-        [[0,0, 0.],[1,1, 1.]],
-        [[0,1, .5],[1,0, .5]]], 'b')
+        [[1,0,0],[0,1,0]],
+        [[1,1,0],[0,0,0]],
+        [[0,0,0],[1,1,0]],
+        [[0,1,0],[1,0,0]]], 'b')
 
 xfrmTable = {
     (None, 2): xfrmQuads2d, 
@@ -324,6 +324,10 @@ class Box(object):
     top = BoxItemProperty(numpy.s_[..., 1, 1])
     far = BoxItemProperty(numpy.s_[..., 1, 2])
 
+    v1d = BoxItemProperty(numpy.s_[..., 0:1])
+    v2d = BoxItemProperty(numpy.s_[..., 0:2])
+    v3d = BoxItemProperty(numpy.s_[..., 0:3])
+
     # aliases
     pos = p0
     corner = p1
@@ -353,6 +357,13 @@ class Box(object):
         return self._data.ndim
     ndim = property(getNdim)
 
+    def getDataRef(self):
+        return self._data
+    def setDataRef(self, dataRef):
+        """Allows caller to replace the actual data instance used to accomplish box aliasing"""
+        self._data = dataRef
+        self._data_changed_
+
     def isBoxVector(self):
         return self.ndim > 2
 
@@ -367,7 +378,7 @@ class Box(object):
         self._data_changed_
 
     def scaleAt(self, scale, at=None, sidx=Ellipsis):
-        self._data[sidx] =  self.posForSizeAt(at, self.size*scale, sidx)
+        self._data[sidx] = self.posForSizeAt(at, self.size*scale, sidx)
         self._data_changed_
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -460,15 +471,13 @@ class Box(object):
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    def getGeoData(self):
-        return self._data[..., None, :, :]
-    geoData = property(getGeoData)
-
     def geoXfrm(self, xfrm='quads', xfrmTable=xfrmTable):
         xfrm = xfrmTable[xfrm, self.shape[-1]]
         return self.xfrm(xfrm)
-    def xfrm(self, xfrm=None):
-        return (xfrm * self.getGeoData()).sum(-2)
+    def xfrm(self, xfrm=None, sumIdx=-2):
+        # change the shape so we can broadcast the xfrm across the boxes
+        vecDataM = self._data[..., None, :, :]
+        return (xfrm * vecDataM).sum(sumIdx)
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     #~ Array and Numeric overrides 

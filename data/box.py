@@ -15,11 +15,7 @@ from operator import truediv
 import numpy
 from numpy import ndarray, asarray
 
-try:
-    from TG.metaObserving import obproperty
-except ImportError:
-    def obproperty(obObjectFactory, *args, **kw):
-        raise NotImplementedError("Could not import obproperty from TG.metaObserving")
+from .dataDescriptors import dataProperty
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Transforms used in Box object
@@ -533,7 +529,7 @@ class Box(object):
     def __pos__(self, other, *modulo):  return self._data.__pos__(other)
     def __abs__(self, other, *modulo):  return self._data.__abs__(other)
 
-Box.property = obproperty
+Box.property = classmethod(dataProperty)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

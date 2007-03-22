@@ -10,34 +10,13 @@
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-from TG.kvObserving import KVObject
-from .dataDescriptors import kvDataProperty
-from .import box
+from TG.metaObserving import obproperty
+from TG.kvObserving import kvproperty
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class KVBox(KVObject, box.Box):
-    @property
-    def _data_changed_(self):
-        self.kvpub('*')
-
-    def _onViewDataChange(self, kvhost, key):
-        self.kvpub('*')
-
-    def viewOf(self, other, dref=None, dim=None):
-        other.kvpub.add('*', self._onViewDataChange)
-        if dref is None:
-            dref = other.getDataRef()
-        if dim: 
-            dref = dref[..., :dim]
-        self.setDataRef(dref)
-
-KVBox.property = classmethod(kvDataProperty)
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-class KVCenterBox(KVBox):
-    at_rel_default = box.CenterBox.at_rel_default
+dataProperty = obproperty
+kvDataProperty = kvproperty
 

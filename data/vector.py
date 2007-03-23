@@ -36,14 +36,8 @@ class VectorItemProperty(object):
 class Vector(_ndarray):
     """Uniform data vector"""
 
-    __array_priority__ = 30.0
+    __array_priority__ = 20.0
     default_dtype = numpy.float
-
-    def __new__(klass, data, dtype=None, copy=True, order='C', subok=True, ndmin=1):
-        """Semantics of numpy.array"""
-        self = _array(data, dtype, copy, order, subok, ndmin)
-        self = self.view(klass)
-        return self
 
     @classmethod
     def __ndnew__(klass, shape, dtype=None, buffer=None, offset=0, strides=None, order='C'):
@@ -57,18 +51,39 @@ class Vector(_ndarray):
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+    @classmethod
+    def fromData(klass, data, dtype=None, copy=True, order='C', subok=True, ndmin=1):
+        """Semantics of numpy.array"""
+        self = _array(data, dtype=dtype, copy=copy, order=order, subok=subok, ndmin=ndmin)
+        self = self.view(klass)
+        return self
+
+    @classmethod
     def fromShape(klass, shape, dtype=None):
         return klass.__ndnew__(shape, dtype)
+
+    @classmethod
     def fromBuffer(klass, buffer, offset=0, shape=-1, dtype=None, strides=None, order='C'):
         return klass.__ndnew__(shape, dtype, buffer, offset, strides, order)
 
+    _as_parameter_ = property(lambda self: self.ctypes._data)
 Vector.property = classmethod(dataProperty)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-def vector(data, dtype=None, copy=True, order='C', subok=True, ndmin=1):
-    return Vector(data, dtype, copy, order, subok, ndmin)
+def vecZeros(shape, dtype=None):
+    r = Vector.fromShape(shape, dtype)
+    r.fill(0)
+    return r
 
-def asvector(data, dtype=None, copy=False, order='C', subok=True, ndmin=1):
-    return Vector(data, dtype, copy, order, subok, ndmin)
+def vecOnes(shape, dtype=None):
+    r = Vector.fromShape(shape, dtype)
+    r.fill(1)
+    return r
+
+def vector(data, dtype=None, copy=True, order='C', subok=True, ndmin=1):
+    return Vector.fromData(data, dtype, copy, order, subok, ndmin)
+
+def asVector(data, dtype=None, copy=False, order='C', subok=True, ndmin=1):
+    return Vector.fromData(data, dtype, copy, order, subok, ndmin)
 

@@ -16,77 +16,112 @@ through numpy.
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+import numpy
+from numpy import ndarray
 import operator as opmodule
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+numbers = (int, long, float)
+
 class SymbolicMathMixin(object):
     def __cmp__(self, other):
         return cmp(repr(self), repr(other))
     def __add__(self, other):
-        if other == 0: return self
-        else: return Operator('+', self, other)
+        if isinstance(other, ndarray):
+            return vop2('+', self, other)
+        if isinstance(other, numbers):
+            if other == 0: return self
+        return Operator('+', self, other)
     def __radd__(self, other):
-        if other == 0: return self
-        else: return Operator('+', other, self)
+        if isinstance(other, numbers):
+            if other == 0: return self
+        return Operator('+', other, self)
 
     def __sub__(self, other):
-        if other == 0: return self
-        else: return Operator('-', self, other)
+        if isinstance(other, ndarray):
+            return vop2('-', self, other)
+        if isinstance(other, numbers):
+            if other == 0: return self
+        return Operator('-', self, other)
     def __rsub__(self, other):
-        if other == 0: return -self
-        else: return Operator('-', other, self)
+        if isinstance(other, numbers):
+            if other == 0: return -self
+        return Operator('-', other, self)
 
     def __mul__(self, other):
-        if other == 0: return other
-        elif other == 1: return self
-        elif other == -1: return -self
-        else: return Operator('*', self, other)
+        if isinstance(other, ndarray):
+            return vop2('*', self, other)
+        if isinstance(other, numbers):
+            if other == 0: return other
+            elif other == 1: return self
+            elif other == -1: return -self
+        return Operator('*', self, other)
     def __rmul__(self, other):
-        if other == 0: return other
-        elif other == 1: return self
-        elif other == -1: return -self
-        else: return Operator('*', other, self)
+        if isinstance(other, numbers):
+            if other == 0: return other
+            elif other == 1: return self
+            elif other == -1: return -self
+        return Operator('*', other, self)
 
     def __mod__(self, other):
+        if isinstance(other, ndarray):
+            return vop2('%', self, other)
         return Operator('%', self, other)
     def __rmod__(self, other):
         return Operator('%', other, self)
 
     def __divmod__(self, other):
+        if isinstance(other, ndarray):
+            return vop2('divmod', self, other)
         return Operator('divmod', self, other)
     def __rdivmod__(self, other):
         return Operator('divmod', other, self)
 
     def __div__(self, other):
-        if other == 1: return self
+        if isinstance(other, ndarray):
+            return vop2('/', self, other)
+        if isinstance(other, numbers):
+            if other == 1: return self
         return Operator('/', self, other)
     def __rdiv__(self, other):
-        if other == 0: return other
+        if isinstance(other, numbers):
+            if other == 0: return other
         return Operator('/', other, self)
 
     def __truediv__(self, other):
-        if other == 1: return self
+        if isinstance(other, ndarray):
+            return vop2('/!', self, other)
+        if isinstance(other, numbers):
+            if other == 1: return self
         return Operator('/!', self, other)
     def __rtruediv__(self, other):
-        if other == 0: return other
+        if isinstance(other, numbers):
+            if other == 0: return other
         return Operator('/!', other, self)
 
     def __floordiv__(self, other):
+        if isinstance(other, ndarray):
+            return vop2('//', self, other)
         return Operator('//', self, other)
     def __rfloordiv__(self, other):
-        if other == 0: return other
+        if isinstance(other, numbers):
+            if other == 0: return other
         return Operator('//', other, self)
 
     def __pow__(self, other, *modulo):
-        if other == 0: return other
+        if isinstance(other, ndarray):
+            if modulo:
+                return vop3('pow', self, other, *modulo)
+            return vop2('**', self, other)
+        if isinstance(other, numbers):
+            if other == 0: return 1
         if modulo:
             return Operator('pow', self, other, *modulo)
-        else: return Operator('**', self, other)
+        return Operator('**', self, other)
     def __rpow__(self, other):
-        if other == 0: return other
         return Operator('**', other, self)
 
     def __neg__(self):
@@ -106,11 +141,28 @@ class Operator(SymbolicMathMixin):
     def __repr__(self):
         return reprExpr(self)
 
+    def append(self, *operands):
+        return self.__class__(self.op, *(self.operands + operands))
+
     def accept(self, visitor):
         return visitor.visitOperator(self)
 
     def eval(self, values=(), **kwvalues):
         return evalExpr(self, values, **kwvalues)
+
+def vop2(op, a, b):
+    return ufunc_op2(Operator(op, a), b)
+
+def ufunc_op2(opA, b):
+    return opA.append(b)
+ufunc_op2 = numpy.frompyfunc(ufunc_op2, 2, 1)
+
+def vop3(op, a, b, c):
+    return ufunc_op2(Operator(op, a), b, c)
+
+def ufunc_op3(opA, b, c):
+    return opA.append(b, c)
+ufunc_op3 = numpy.frompyfunc(ufunc_op3, 3, 1)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -149,7 +201,12 @@ class PPExpression(object):
     def visitBasic(self, item):
         if isinstance(item, (int, long, basestring, float, complex)):
             return str(item)
-        return map(self.visit, item)
+        if isinstance(item, numpy.ndarray):
+            result = numpy.array([self.visit(e) for e in item.flat], 'object')
+            result.shape = item.shape
+            return str(result).replace('\n', '')
+
+        return '[' + ', '.join(map(self.visit, item)) + ']'
 
     def visitSymbol(self, symbol):
         return symbol.name
@@ -208,12 +265,17 @@ class ExprEvaluator(object):
         accept = getattr(item, 'accept', None)
         if accept is None:
             return self.visitBasic(item)
-        else: return accept(self)
+        else: 
+            return accept(self)
     __call__ = visit
 
     def visitBasic(self, item):
         if isinstance(item, (int, long, basestring, float, complex)):
             return item
+        if isinstance(item, numpy.ndarray):
+            r = numpy.fromiter((self.visit(e) for e in item), 'object', item.size)
+            r.shape = item.shape
+            return r
         return map(self.visit, item)
 
     def visitSymbol(self, symbol):

@@ -11,10 +11,10 @@
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 import numpy
-from numpy import ndarray, multiply
+from numpy import ndarray, multiply, asarray
 
-from TG.openGL.data import Color
-from .vector import Vector
+from TG.openGL.data import Color # XXX: Temporary use of openGL's color implementation
+from .vector import Vector, _VectorIndexSyntaxBase
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Constants
@@ -86,6 +86,20 @@ colorFormatTransforms.update({
     })
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~ Hex Syntax
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class HexSyntax(_VectorIndexSyntaxBase):
+    def __str__(self):
+        return str(self.vec.tohex())
+    __repr__ = __str__
+
+    def __getitem__(self, idx):
+        return self.vec[idx].tohex()
+    def __setitem__(self, idx, hexData):
+        self.vec[idx].setHex(hexData)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Color Vectors
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -94,11 +108,22 @@ class ColorVector(Vector):
     #~ Hex format 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
 
-    def tohex(self):
+    def getHex(self):
+        return HexSyntax(self)
+    def setHex(self, hexData):
+        self.convertFrom(self.fromHexRaw(hexData))
+    hex = property(getHex, setHex)
+
+    def tohex(self, join=' '):
         if self.dtype.char != 'B':
             return self.convert(dtype='B').tohex()
 
-        return self.tostring().encode('hex')
+        def vAsHex(v):
+            if v.ndim == 1:
+                return '#'+v.tostring().encode('hex')
+            return asarray(map(vAsHex, v))
+
+        return vAsHex(self)
 
     def fromData(klass, data, dtype=None, copy=True, order='C', subok=True, ndmin=1):
         if isinstance(data[0], basestring):
@@ -178,22 +203,17 @@ class ColorVector(Vector):
         elif dtype is None: 
             dtype = self.dtype
 
-        if -1 in shape:
-            minlen = min(len(shape), len(self.shape))
-            shape = zip(shape[len(shape)-minlen:], self.shape[len(self.shape)-minlen:])
-            shape = tuple((s if s != -1 else a) for s,a in shape)
-
         other = self.fromShape(shape, dtype)
-        return self.convertFormat(self, other)
+        return self.convertData(self, other)
 
-    def formatAs(self, other):
-        return self.convertFormat(self, other.dtype)
+    def convertAs(self, other):
+        return self.convertData(self, other)
 
-    def formatFrom(self, other):
-        return self.convertFormat(other, self.dtype)
+    def convertFrom(self, other):
+        return self.convertData(other, self)
 
     @classmethod
-    def convertFormat(klass, src, dst, colorFormatTransforms=colorFormatTransforms):
+    def convertData(klass, src, dst, colorFormatTransforms=colorFormatTransforms):
         if isinstance(dst, (basestring, tuple, numpy.dtype)):
             dst = klass.fromShape(src.shape, dst)
         elif not isinstance(dst, ndarray):
@@ -215,12 +235,18 @@ class ColorVector(Vector):
         nd_src = src.view(ndarray)
 
         scale = colorFormatTransforms.get((f_src, f_dst), None)
-        if scale is not None:
+        if scale is None:
+            # just copy the data over
+            nd_dst[ci_data] = nd_src[ci_data]
+
+        else: 
+            # we need to scale
             if nd_dst.shape == nd_src.shape:
+                # we are aligned, so use the ufunc to avoid allocating memory
                 multiply(scale, nd_src[ci_data], nd_dst[ci_data])
             else:
+                # some sort of broadcast, let numpy do it's magic
                 nd_dst[ci_data] = multiply(scale, nd_src[ci_data])
-        else: nd_dst[ci_data] = nd_src[ci_data]
 
         if ci_last is not None:
             # fill in the last value
@@ -228,7 +254,8 @@ class ColorVector(Vector):
 
         return dst
 
-Color = ColorVector
+
+#Color = ColorVector # XXX: Temporary use of openGL's color implementation
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

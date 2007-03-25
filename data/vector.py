@@ -33,6 +33,14 @@ class VectorItemProperty(object):
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+class _VectorIndexSyntaxBase(object):
+    def __init__(self, vec):
+        self.vec = vec
+    def __repr__(self):
+        return '<%s of %s>' % (self.__class__.__name__, self.vec.__class__.__name__)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 class Vector(_ndarray):
     """Uniform data vector"""
 

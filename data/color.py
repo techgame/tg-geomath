@@ -70,6 +70,8 @@ for (l,r), v in colorFormatTransforms.items():
     if v is None: continue
     if (r,l) not in colorFormatTransforms:
         colorFormatTransforms[(r,l)] = 1./v
+l=r=v=None
+del l, r, v
 
 # add in the max values as a single number
 colorFormatTransforms.update({
@@ -104,6 +106,8 @@ class HexSyntax(_VectorIndexSyntaxBase):
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class ColorVector(Vector):
+    byName = {} # filled in later
+
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
     #~ Hex format 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
@@ -125,14 +129,29 @@ class ColorVector(Vector):
 
         return vAsHex(self)
 
+    @classmethod
     def fromData(klass, data, dtype=None, copy=True, order='C', subok=True, ndmin=1):
         if isinstance(data[0], basestring):
-            return self.fromHex(data, None, dtype)
+            return klass.fromHex(data, None, dtype)
 
         return Vector.fromData(data, dtype, copy, order, subok, ndmin)
+
     @classmethod
     def fromHex(klass, hexData, shape=None, dtype=None):
         colors = klass.fromHexRaw(hexData)
+        result = colors.convert(shape, dtype, False)
+        if shape is None:
+            result = result.squeeze()
+        return result
+
+    @classmethod
+    def fromName(klass, colorName, shape=None, dtype=None):
+        if isinstance(data, basestring):
+            data = [data]
+
+        byName = klass.byName
+        data = asarray([byName[n] for n in data], 'B')
+
         result = colors.convert(shape, dtype, False)
         if shape is None:
             result = result.squeeze()
@@ -166,7 +185,12 @@ class ColorVector(Vector):
 
             if value[:1] == '#':
                 value = value[1:]
-            else: 
+            else:
+                value = klass.byName.get(value, None)
+                if value is not None:
+                    colorResult[i] = value
+                    continue
+
                 raise ValueError("Expected color string to begin with #: %r" % (value,))
 
             value = value.strip().replace(' ', ':').replace(',', ':')
@@ -288,4 +312,18 @@ def colorVector(data, dtype=None, copy=True, order='C', subok=True, ndmin=1):
 
 def asColorVector(data, dtype=None, copy=False, order='C', subok=True, ndmin=1):
     return ColorVector.fromData(data, dtype, copy, order, subok, ndmin)
+
+def colorVectorFromUint32(v, hasAlpha=False):
+    if hasAlpha:
+        r, g, b, a = (v>>24), (v>>16), (v>>8), (v>>0)
+    else:
+        r, g, b = (v>>16), (v>>8), (v>>0)
+        a = 0xff
+
+    return colorVector([r, g, b, a], 'B')
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+from colorNames import colorNameTable
+ColorVector.byName = colorNameTable
 

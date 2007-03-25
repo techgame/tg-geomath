@@ -39,6 +39,16 @@ class Vector(_ndarray):
     __array_priority__ = 20.0
     default_dtype = numpy.float
 
+    v0 = VectorItemProperty(numpy.s_[..., 0])
+    v1 = VectorItemProperty(numpy.s_[..., 1])
+    v2 = VectorItemProperty(numpy.s_[..., 2])
+    v3 = VectorItemProperty(numpy.s_[..., 3])
+
+    vd1 = VectorItemProperty(numpy.s_[..., 0:1])
+    vd2 = VectorItemProperty(numpy.s_[..., 0:2])
+    vd3 = VectorItemProperty(numpy.s_[..., 0:3])
+    vd4 = VectorItemProperty(numpy.s_[..., 0:4])
+
     @classmethod
     def __ndnew__(klass, shape, dtype=None, buffer=None, offset=0, strides=None, order='C'):
         """Semantics of numpy.ndarray.__new__"""

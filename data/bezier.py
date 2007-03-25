@@ -18,15 +18,10 @@ from numpy import ndarray, array, vander, dot
 #~ Definitions 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-def uvander(self, u): 
-    return vander(array(u, copy=False, ndmin=1), len(self))
-
 class Bezier(ndarray):
     __array_priority__ = -1
 
     order = {}
-
-    uvander = uvander
 
     def __new__(klass, groupKey, *args, **kw):
         self = groups[groupKey]
@@ -39,7 +34,7 @@ class Bezier(ndarray):
         if isinstance(pts, list):
             pts = numpy.asarray(pts)
         Bp = dot(self, pts)
-        uM = self.uvander(u)
+        uM = vander(u, len(self))
         return dot(uM, Bp)
     __call__ = at
 
@@ -52,7 +47,7 @@ class Bezier(ndarray):
     dot = atP
 
     def atU(self, u):
-        uM = self.uvander(u)
+        uM = vander(u, len(self))
         uB = dot(uM, self)
         return uB.view(UBezier)
 
@@ -70,9 +65,8 @@ class UBezier(ndarray):
 class BezierP(ndarray):
     __array_priority__ = -1
 
-    uvander = uvander
     def atU(self, u):
-        uM = self.uvander(u)
+        uM = vander(u, len(self))
         return dot(uM, self)
     __call__ = at = atU
 
@@ -123,8 +117,8 @@ groups = {
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 if __name__=='__main__':
-    from TG.openGL.data import Color
-    cpts = Color(['#000', '#70f', '#f48', '#fff'], '4B')
+    from TG.geomath.data.color import colorVector
+    cpts = colorVector(['#000', '#70f', '#f48', '#fff'])
     u = [0., .25, .5, .75, 1.]
 
     print
@@ -150,7 +144,8 @@ if __name__=='__main__':
         print 'B3 blend:'
         print Bezier('ak')
         bu = Bezier('ak', u)
-        print b1.atU(bu)*[cpts[0], cpts[3]]
+        r = b1.atU(bu)*[cpts[0], cpts[3]]
+        print r
         print
 
 

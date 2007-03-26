@@ -15,7 +15,6 @@ from itertools import izip
 import numpy
 from numpy import zeros_like, zeros, empty_like, empty, ndindex
 
-from .layoutData import Rect, Vector
 from .gridLayout import GridLayoutStrategy
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -23,12 +22,12 @@ from .gridLayout import GridLayoutStrategy
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class FlexGridLayoutStrategy(GridLayoutStrategy):
-    def rowColSizesFor(self, cells, box, isTrial=False):
+    def rowColSizesFor(self, cells, lbox, isTrial=False):
         vaxis = self._vaxis; haxis = self._haxis
         nRows = self.nRows; nCols = self.nCols
 
         # determin weights and sizes for rows and columns
-        weights, minSizes = self.cellsStats(cells)
+        weights, minSizes = self.cellWeightsMinSizes(cells)
 
         rowWeights = vaxis*weights.max(1)
         rowSizes = vaxis*minSizes.max(1)
@@ -40,10 +39,10 @@ class FlexGridLayoutStrategy(GridLayoutStrategy):
         borders = 2*self.outside + (nCols-1, nRows-1)*self.inside
 
         gridMinSize = borders + rowSizes.sum(0) + colSizes.sum(0)
-        box.size[:] = numpy.max([box.size, gridMinSize], 0)
+        lbox.size[:] = numpy.max([lbox.size, gridMinSize], 0)
 
         # figure out what our starting size minus borders is
-        availSize = box.size - gridMinSize
+        availSize = lbox.size - gridMinSize
 
         if (availSize > 0).any():
             if (availSize*vaxis > 0).any():
@@ -70,13 +69,13 @@ class FlexGridLayoutStrategy(GridLayoutStrategy):
 
         return rowSizes, colSizes
 
-    def cellsStats(self, cells, default=zeros((2,), 'f')):
+    def cellWeightsMinSizes(self, cells, default=zeros((2,), 'f')):
         nRows = self.nRows; nCols = self.nCols
         minSizes = empty((nRows, nCols, 2), 'f')
         weights = empty((nRows, nCols, 2), 'f')
 
         # grab cell info into minSize and weights arrays
-        idxWalk = ndindex(weights.shape[:-1])
+        idxWalk = ndindex((nRows, nCols))
         for c, idx in izip(cells, idxWalk):
             weights[idx] = (getattr(c, 'weight', None) or default)
             minSizes[idx] = (getattr(c, 'minSize', None) or default)

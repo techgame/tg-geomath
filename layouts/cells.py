@@ -13,42 +13,32 @@
 import numpy
 from numpy import floor, ceil
 
-from .layoutData import Rect, Vector
+from TG.kvObserving import KVObject
+from .layoutData import Box, Vector
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class BasicCell(object):
-    visible = True
-    box = Rect.property()
-
-    # Note: You can provide this function if you want to adjust the size
-    # alloted to your cell.  If not present, some algorithms run faster
-    ##def adjustSize(self, lsize):
-    ##    # lsize parameter must not be modified... use copies!
-    ##    return lsize
+class BasicCell(KVObject):
+    box = Box.property()
 
     def layoutInBox(self, lbox):
-        cellBox = self.box
+        if lbox is not None:
+            self.box.pv = lbox.pv
+        # else: hide
 
-        # lbox.pos and lbox.size parameters must not modified... use copies!
-        ceil(lbox.pos, cellBox.pos)
-        floor(lbox.size, cellBox.size)
-
-        self.onlayout(self, cellBox)
-
-    def layoutHide(self):
-        self.onlayout(self, None)
-
-    def onlayout(self, cell, cbox):
-        pass
+    # Note: You can provide layoutAdjustSize() if you want to adjust the size
+    # alloted to your cell.  If not present, some algorithms run faster
+    ##def layoutAdjustSize(self, lsize):
+    ##    # lsize parameter must not be modified... use copies!
+    ##    return lsize
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class Cell(BasicCell):
-    weight = Vector.property([0,0], '2f')
-    minSize = Vector.property([0,0], '2f')
+    weight = Vector.property([0,0], 'f')
+    minSize = Vector.property([0,0], 'f')
 
     def __init__(self, weight=None, min=None):
         BasicCell.__init__(self)
@@ -61,7 +51,7 @@ class Cell(BasicCell):
 #~ MaxSize support
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-def adjustForMaxSize(self, lsize):
+def layoutAdjustForMaxSize(self, lsize):
     # lsize parameter must not be modified... use copies!
     maxSize = self.maxSize
     idx = (maxSize > 0) & (maxSize < lsize)
@@ -71,12 +61,12 @@ def adjustForMaxSize(self, lsize):
     return lsize
 
 class MaxSizeCell(Cell):
-    maxSize = Vector.property([0,0], '2f')
+    maxSize = Vector.property([0,0], 'f')
 
     def __init__(self, weight=None, min=None, max=None):
         Cell.__init__(self, weight, min)
         if max is not None:
             self.maxSize[:] = max
 
-    adjustSize = adjustForMaxSize
+    layoutAdjustSize = layoutAdjustForMaxSize
 

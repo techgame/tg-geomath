@@ -15,7 +15,7 @@ from itertools import izip
 import numpy
 from numpy import zeros_like, zeros, empty_like, empty, ndindex
 
-from .layoutData import Rect, Vector
+from .layoutData import Box, Vector
 from .basicLayout import BaseLayoutStrategy
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -25,8 +25,8 @@ from .basicLayout import BaseLayoutStrategy
 class GridLayoutStrategy(BaseLayoutStrategy):
     nRows = nCols = None
 
-    _haxis = numpy.array([1,0], 'b')
-    _vaxis = numpy.array([0,1], 'b')
+    _haxis = Vector([1,0], 'b')
+    _vaxis = Vector([0,1], 'b')
 
     def __init__(self, nRows=2, nCols=2):
         self.setRowCol(nRows=2, nCols=2)
@@ -39,52 +39,42 @@ class GridLayoutStrategy(BaseLayoutStrategy):
     rowCol = property(getRowCol, setRowCol)
 
     def layout(self, cells, box, isTrial=False):
-        if not cells:
-            return box.pos.copy(), 0*box.size
-
-        box = box.copy()
-
-        # determin visible cells
-        visCells = self.cellsVisible(cells)
+        rbox = box.copy()
+        lbox = box.copy()
 
         # figure out what our row and column sizes should be from the cells
-        rowSizes, colSizes = self.rowColSizesFor(visCells, box, isTrial)
+        rowSizes, colSizes = self.rowColSizesFor(cells, lbox, isTrial)
 
-        if not isTrial:
-            iCells = iter(visCells)
-            iCellBoxes = self.iterCellBoxes(visCells, box, rowSizes, colSizes, isTrial)
+        if isTrial:
+            # row and col sizes
+            lsize = rowSizes.sum(0) + colSizes.sum(0)
+
+            # plus borders along axis
+            lsize += 2*self.outside + (self.nCols-1, self.nRows-1)*self.inside
+            rbox.size = lsize
+            return rbox
+
+        else:
+            iCellBoxes = self.iterCellBoxes(cells, lbox, rowSizes, colSizes, isTrial)
+            iCells = iter(cells)
 
             # let cells lay themselves out in their boxes
             for cbox, c in izip(iCellBoxes, iCells):
                 c.layoutInBox(cbox)
 
-            # hide cells that have no box
+            # hide cells that have no cbox
             for c in iCells:
-                c.layoutHide()
+                c.layoutInBox(None)
 
-        return self.layoutBox(visCells, box, rowSizes, colSizes, isTrial)
-        
-    def layoutBox(self, visCells, box, rowSizes, colSizes, isTrial=False):
-        nRows = self.nRows; nCols = self.nCols
-
-        lbox = box.copy()
-        lsize = lbox.size
-
-        # row and col sizes
-        lsize = rowSizes.sum(0) + colSizes.sum(0)
-        # plus borders along axis
-        lsize += 2*self.outside + (nCols-1, nRows-1)*self.inside
-        return lbox
-
-    def iterCellBoxes(self, cells, box, rowSizes, colSizes, isTrial=False):
-        posStart = box.pos + box.size*self._vaxis
+    def iterCellBoxes(self, cells, lbox, rowSizes, colSizes, isTrial=False):
+        posStart = lbox.pos + lbox.size*self._vaxis
         # come right and down by the outside border
         posStart += self.outside*(1,-1) 
         advCol = self._haxis*self.inside
         advRow = self._vaxis*self.inside
 
-        cellBox = Rect()
-        cellBox = box.fromSize((0,0))
+        cellBox = Box()
+        cellBox = lbox.fromSize((0,0))
         posRow = posStart
         posCol = cellBox.pos
         for row in rowSizes:
@@ -93,7 +83,7 @@ class GridLayoutStrategy(BaseLayoutStrategy):
 
             posCol[:] = posRow
             for col in colSizes:
-                # yield cell box
+                # yield cell lbox
                 cellBox.size[:] = row + col
                 yield cellBox
 
@@ -103,21 +93,21 @@ class GridLayoutStrategy(BaseLayoutStrategy):
             # adv down by inside border
             posRow -= advRow
 
-    def rowColSizesFor(self, cells, box, isTrial=False):
+    def rowColSizesFor(self, cells, lbox, isTrial=False):
         vaxis = self._vaxis; haxis = self._haxis
         nRows = self.nRows; nCols = self.nCols
 
-        cellsMinSize = self.cellsStats(cells)
+        cellsMinSize = self.cellsMinSize(cells)
         cellsMinSize *= (nCols, nRows)
 
         # figure out how much room the borders take
         borders = 2*self.outside + (nCols-1, nRows-1)*self.inside
 
         gridMinSize = borders + cellsMinSize
-        box.size[:] = numpy.max([box.size, gridMinSize], 0)
+        lbox.size[:] = numpy.max([lbox.size, gridMinSize], 0)
 
         # figure out what our starting size minus borders is
-        availSize = box.size - borders 
+        availSize = lbox.size - borders 
         cellSize = (availSize / (nCols, nRows))
 
         # repeat rowSize nRows times
@@ -128,7 +118,14 @@ class GridLayoutStrategy(BaseLayoutStrategy):
         colSizes[:] = (cellSize*haxis)
         return rowSizes, colSizes
 
-    def cellsStats(self, cells, default=zeros((2,), 'f')):
-        cellsMinSize = numpy.min([(getattr(c, 'minSize', None) or default) for c in cells], 0)
-        return cellsMinSize
+    def cellsMinSize(self, cells, default=zeros((2,), 'f')):
+        nRows = self.nRows; nCols = self.nCols
+        minSizes = empty((nRows, nCols, 2), 'f')
+
+        # grab cell info into minSize and weights arrays
+        idxWalk = ndindex((nRows, nCols))
+        for c, idx in izip(cells, idxWalk):
+            minSizes[idx] = (getattr(c, 'minSize', None) or default)
+
+        return minSizes.reshape((-1, 2)).min(0)
 

@@ -57,6 +57,11 @@ class Vector(_ndarray):
     vd3 = VectorItemProperty(numpy.s_[..., 0:3])
     vd4 = VectorItemProperty(numpy.s_[..., 0:4])
 
+    def __new__(klass, data, dtype=None, copy=True, order='C', subok=True, ndmin=1):
+        return klass.fromData(data, dtype, copy, order, subok, ndmin)
+    def __init__(self, data, dtype=None, copy=True, order='C', subok=True, ndmin=1):
+        pass
+
     @classmethod
     def __ndnew__(klass, shape, dtype=None, buffer=None, offset=0, strides=None, order='C'):
         """Semantics of numpy.ndarray.__new__"""

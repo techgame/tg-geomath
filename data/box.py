@@ -479,6 +479,11 @@ class Box(object):
     #~ Array and Numeric overrides 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+    def tostring(self):
+        return self._data.tostring()
+    def tolist(self):
+        return self._data.tolist()
+
     def __array__(self, dtype=None): 
         if dtype is not None:
             return self._data.astype(dtype)

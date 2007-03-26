@@ -260,7 +260,9 @@ class Box(object):
 
     @classmethod
     def new(klass):
-        return klass.__new__(klass)
+        self = klass.__new__(klass)
+        klass.observerNotifyInit(self)
+        return self
 
     @classmethod
     def fromArray(klass, data):

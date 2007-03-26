@@ -58,6 +58,7 @@ class Vector(_ndarray):
     vd4 = VectorItemProperty(numpy.s_[..., 0:4])
 
     def __new__(klass, data, dtype=None, copy=True, order='C', subok=True, ndmin=1):
+        """Semantics of vector()"""
         return klass.fromData(data, dtype, copy, order, subok, ndmin)
     def __init__(self, data, dtype=None, copy=True, order='C', subok=True, ndmin=1):
         pass

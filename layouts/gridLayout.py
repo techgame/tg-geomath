@@ -15,7 +15,7 @@ from itertools import izip
 import numpy
 from numpy import zeros_like, zeros, empty_like, empty, ndindex
 
-from .layoutData import Box, Vector
+from .layoutData import CellBox, Vector
 from .basicLayout import BaseLayoutStrategy
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -29,7 +29,7 @@ class GridLayoutStrategy(BaseLayoutStrategy):
     _vaxis = Vector([0,1], 'b')
 
     def __init__(self, nRows=2, nCols=2):
-        self.setRowCol(nRows=2, nCols=2)
+        self.setRowCol(nRows, nCols)
 
     def getRowCol(self):
         return self.nRows, self.nCols
@@ -43,7 +43,7 @@ class GridLayoutStrategy(BaseLayoutStrategy):
         lbox = box.copy()
 
         # figure out what our row and column sizes should be from the cells
-        rowSizes, colSizes = self.rowColSizesFor(cells, lbox, isTrial)
+        rowSizes, colSizes = self.rowColSizesFor(cells, lbox)
 
         if isTrial:
             # row and col sizes
@@ -55,7 +55,7 @@ class GridLayoutStrategy(BaseLayoutStrategy):
             return rbox
 
         else:
-            iCellBoxes = self.iterCellBoxes(cells, lbox, rowSizes, colSizes, isTrial)
+            iCellBoxes = self.iterCellBoxes(cells, lbox, rowSizes, colSizes)
             iCells = iter(cells)
 
             # let cells lay themselves out in their boxes
@@ -66,34 +66,32 @@ class GridLayoutStrategy(BaseLayoutStrategy):
             for c in iCells:
                 c.layoutInBox(None)
 
-    def iterCellBoxes(self, cells, lbox, rowSizes, colSizes, isTrial=False):
+    def iterCellBoxes(self, cells, lbox, rowSizes, colSizes):
         posStart = lbox.pos + lbox.size*self._vaxis
         # come right and down by the outside border
         posStart += self.outside*(1,-1) 
         advCol = self._haxis*self.inside
         advRow = self._vaxis*self.inside
 
-        cellBox = Box()
-        cellBox = lbox.fromSize((0,0))
+        cellBox = CellBox(posStart, posStart)
+        cellPos = cellBox.pos
         posRow = posStart
-        posCol = cellBox.pos
         for row in rowSizes:
             # adv down by row
-            posRow -= row
-
-            posCol[:] = posRow
+            cellPos -= row
             for col in colSizes:
                 # yield cell lbox
-                cellBox.size[:] = row + col
+                cellBox.size = row + col
                 yield cellBox
 
                 # adv right by col + inside border
-                posCol += col + advCol
+                cellPos += col + advCol
 
             # adv down by inside border
-            posRow -= advRow
+            cellPos -= advRow
+            cellPos[0] = posStart[0]
 
-    def rowColSizesFor(self, cells, lbox, isTrial=False):
+    def rowColSizesFor(self, cells, lbox):
         vaxis = self._vaxis; haxis = self._haxis
         nRows = self.nRows; nCols = self.nCols
 

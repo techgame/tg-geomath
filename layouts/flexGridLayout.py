@@ -22,7 +22,7 @@ from .gridLayout import GridLayoutStrategy
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class FlexGridLayoutStrategy(GridLayoutStrategy):
-    def rowColSizesFor(self, cells, lbox, isTrial=False):
+    def rowColSizesFor(self, cells, lbox):
         vaxis = self._vaxis; haxis = self._haxis
         nRows = self.nRows; nCols = self.nCols
 

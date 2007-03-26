@@ -10,84 +10,57 @@
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-import time
+import unittest
 
-from TG.geomath.data.box import Box
-from TG.geomath.layouts.cells import *
-from TG.geomath.layouts.axisLayout import *
+from TG.geomath.layouts.cells import CellBox, Cell
+from TG.geomath.layouts.axisLayout import HorizontalLayoutStrategy, VerticalLayoutStrategy
+
+from TG.geomath.layouts.test.strategy import StrategyTestMixin
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-box = Box((0,0), (1000, 1000))
-
-def runAxisLayout():
+class TestHorizontalAxisLayout(StrategyTestMixin, unittest.TestCase):
+    StrategyFactory = HorizontalLayoutStrategy
+    hostBox = CellBox((0,0), (1000, 800))
     cells = [
         Cell(0, 200),
-        MaxSizeCell(1, 200, 300),
+        Cell(1, 300),
         Cell(1, 200),
         ]
 
-    vl = VerticalLayoutStrategy()
+    def testLBox(self):
+        self.assertEqual(self.lbox, [[0,0],[1000,800]])
 
-    if 1:
-        vl.inside = 10
-        vl.outside = 50, 50
-
-    if 1:
-        for p in xrange(2):
-            lb = vl.layout(cells, box, not p%2)
-            print
-            print 'box:', box.tolist()
-            if lb is not None:
-                print '  layout:', lb.tolist()
-            for i, c in enumerate(cells):
-                print '    cell %s:' % i, c.box.tolist()
-            print
+    def testCellBoxes(self):
+        self.assertEqual(self.cbox[0], [[ 50,50], [250, 750]])
+        self.assertEqual(self.cbox[1], [[260,50], [650, 750]])
+        self.assertEqual(self.cbox[2], [[660,50], [950, 750]])
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-def runAxisTimiing(n=100):
+class TestVerticalAxisLayout(StrategyTestMixin, unittest.TestCase):
+    StrategyFactory = VerticalLayoutStrategy
+    hostBox = CellBox((0,0), (1000, 800))
     cells = [
         Cell(0, 200),
-        MaxSizeCell(1, 200, 300),
+        Cell(1, 300),
         Cell(1, 200),
         ]
 
-    vl = VerticalLayoutStrategy()
+    def testLBox(self):
+        self.assertEqual(self.lbox, [[0,0],[1000,820]])
 
-    if 1:
-        vl.inside = 10
-        vl.outside = (50, 50)
-
-    box.size *= 5
-    cells *= 10
-    cn = max(1, len(cells)*n)
-
-    if 1:
-        s = time.time()
-        for p in xrange(n):
-            vl.layout(cells, box, False)
-        dt = time.time() - s
-        print '%r time: %5s cn/s: %5s pass/s: %5s' % ((n,cn), dt, cn/dt, n/dt)
-
-    if 1:
-        s = time.time()
-        for p in xrange(n):
-            vl.layout(cells, box, True)
-        dt = time.time() - s
-        print '%r time: %5s cn/s: %5s pass/s: %5s' % ((n,cn), dt, cn/dt, n/dt)
+    def testCellBoxes(self):
+        self.assertEqual(self.cbox[0], [[50, 50], [950, 250]])
+        self.assertEqual(self.cbox[1], [[50,260], [950, 560]])
+        self.assertEqual(self.cbox[2], [[50,570], [950, 770]])
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#~ Main 
+#~ Unittest Main 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 if __name__=='__main__':
-    if 1:
-        runAxisLayout()
-
-    # timing analysis
-    if 1:
-        runAxisTimiing()
+    unittest.main()
 

@@ -15,7 +15,7 @@ from itertools import izip
 import numpy
 from numpy import zeros_like, zeros, empty_like, empty, ndindex
 
-from .layoutData import Box, Vector
+from .layoutData import CellBox, Vector
 from .basicLayout import BaseLayoutStrategy
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -31,7 +31,7 @@ class AxisLayoutStrategy(BaseLayoutStrategy):
         lbox = box.copy()
 
         # determin sizes for cells
-        axisSizes = self.axisSizesFor(cells, lbox, isTrial)
+        axisSizes = self.axisSizesFor(cells, lbox)
 
         if isTrial:
             # calculate what we used of the box
@@ -43,7 +43,7 @@ class AxisLayoutStrategy(BaseLayoutStrategy):
             return rbox
 
         else:
-            iCellBoxes = self.iterCellBoxes(cells, lbox, axisSizes, isTrial)
+            iCellBoxes = self.iterCellBoxes(cells, lbox, axisSizes)
             iCells = iter(cells)
 
             # let cells lay themselves out in their boxes
@@ -54,7 +54,7 @@ class AxisLayoutStrategy(BaseLayoutStrategy):
             for c in iCells:
                 c.layoutInBox(None)
 
-    def axisSizesFor(self, cells, lbox, isTrial=False):
+    def axisSizesFor(self, cells, lbox):
         # determin minsize
         axis = self.axis
         weights, axisSizes = self.cellWeightsMinSizes(cells)
@@ -77,49 +77,17 @@ class AxisLayoutStrategy(BaseLayoutStrategy):
             if weightSum > 0:
                 axisSizes += weights*availSize/weightSum
 
-        # allow the cells to negotiate space and adjust to it
-        axisSizes = self.axisSizeAdjust(cells, lbox, weights, axisSizes, isTrial)
-        return axisSizes
-
-    def axisSizeAdjust(self, cells, lbox, weights, axisSizes, isTrial=False):
-        weightSum = weights.sum()
-
-        for x in xrange(self._nAdjustTries):
-            # allow cells to adjust for maxsize, rounding, etc
-            adjSizes = self.cellsAdjustedSize(cells, axisSizes, isTrial)
-            idxAdj = (adjSizes != 0).any(-1)
-            if not idxAdj.any():
-                # if none changed, we are done
-                break
-
-            # adjust as requested
-            axisSizes -= adjSizes
-
-            # repartition our adjSize to new weighted ones
-            availSize = adjSizes.sum(0)
-
-            # remove those who changed the size from the weights
-            weightSum -= weights[idxAdj].sum()
-            weights[idxAdj] = 0
-
-            if weightSum > 0:
-                # distributed the available size to the remaining weighted items
-                axisSizes += weights*availSize/weightSum
-            else:
-                # if there are no more items to reweight, then we are done
-                break
-
         return axisSizes
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    def iterCellBoxes(self, cells, lbox, axisSizes, isTrial=False):
+    def iterCellBoxes(self, cells, lbox, axisSizes):
         axis = self.axis
         outside = self.outside
         nonAxisSize = (1-axis)*(lbox.size - 2*outside)
         axisBorders = axis*self.inside
 
-        cellBox = Box()
+        cellBox = CellBox()
 
         # let each cell know it's new pos and size
         p0 = lbox.pos + outside
@@ -145,16 +113,6 @@ class AxisLayoutStrategy(BaseLayoutStrategy):
             minSizes[idx] = getattr(c, 'minSize', default)
 
         return (weights, minSizes)
-
-    def cellsAdjustedSize(self, cells, axisSizes, isTrial=False, default=zeros((2,), 'f')):
-        adjSizes = empty_like(axisSizes)
-        axis = self.axis
-        for c, axSize, adSize in zip(cells, axisSizes, adjSizes):
-            layoutAdjustSize = getattr(c, 'layoutAdjustSize', None)
-            if layoutAdjustSize is not None:
-                adSize[:] = axSize - axis*layoutAdjustSize(axSize)
-            else: adSize[:] = default
-        return adjSizes
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

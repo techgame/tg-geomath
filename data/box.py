@@ -194,7 +194,7 @@ class BlendAtSyntax(_BoxIndexSyntaxBase):
         box = self.box
         idx0, ialpha = divmod(alpha, 1)
         boxData = box._data[..., idx0:idx0+2, :, :]
-        return box.fromData(self._boxBlendData(ialpha, boxData))
+        return box.fromArray(self._boxBlendData(ialpha, boxData))
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -263,7 +263,7 @@ class Box(object):
         return klass.__new__(klass)
 
     @classmethod
-    def fromData(klass, data):
+    def fromArray(klass, data):
         if data.shape[-2] != 2:
             raise ValueError("Box requires data.shape[-2] == 2.  Data.shape is %r" % (data.shape,))
         self = klass.new()
@@ -271,7 +271,10 @@ class Box(object):
         return self
 
     def copy(self):
-        return self.fromData(self._data.copy())
+        return self.fromArray(self._data.copy())
+
+    def astype(self, t):
+        return self.fromArray(self._data.astype(t))
 
     @classmethod
     def fromSize(klass, size, aspect=None, dtype=None):
@@ -281,7 +284,7 @@ class Box(object):
             size = klass.toAspect(size, aspect)
 
         data = klass._asDataArray([numpy.zeros_like(size), size], dtype)
-        return klass.fromData(data)
+        return klass.fromArray(data)
 
     @classmethod
     def fromPosSize(klass, pos, size, aspect=None, dtype=None):
@@ -292,13 +295,13 @@ class Box(object):
 
         data = klass._asDataArray([pos, size], dtype)
         data[1] += data[0]
-        return klass.fromData(data)
+        return klass.fromArray(data)
 
     @classmethod
     def fromCorners(klass, p0, p1, dtype=None):
         if dtype is None: dtype = klass.dtype_default
         data = klass._asDataArray([p0, p1], dtype)
-        return klass.fromData(data)
+        return klass.fromArray(data)
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     #~ Data access descriptors
@@ -386,7 +389,7 @@ class Box(object):
     _boxBlendData = staticmethod(boxBlend)
     def blend(self, alpha, other):
         data = self._boxBlendData(alpha, [self._data, other._data])
-        return self.fromData(data)
+        return self.fromArray(data)
 
     @property
     def at(self):
@@ -492,7 +495,7 @@ class Box(object):
     def __getitem__(self, key): 
         r = self._data[key]
         if r.ndim >= 2 and r.shape[-2] == 2:
-            r = self.fromData(r)
+            r = self.fromArray(r)
         return r
     def __setitem__(self, key, value): 
         self._data[key] = value

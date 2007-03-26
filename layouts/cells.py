@@ -14,25 +14,24 @@ import numpy
 from numpy import floor, ceil
 
 from TG.kvObserving import KVObject
-from .layoutData import Box, Vector
+from .layoutData import CellBox, Vector
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class BasicCell(KVObject):
-    box = Box.property()
+    box = CellBox.property()
 
     def layoutInBox(self, lbox):
         if lbox is not None:
             self.box.pv = lbox.pv
         # else: hide
 
-    # Note: You can provide layoutAdjustSize() if you want to adjust the size
-    # alloted to your cell.  If not present, some algorithms run faster
-    ##def layoutAdjustSize(self, lsize):
-    ##    # lsize parameter must not be modified... use copies!
-    ##    return lsize
+    def copy(self):
+        cpy = self.new()
+        cpy.box = self.box.copy()
+        return cpy
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -43,30 +42,18 @@ class Cell(BasicCell):
     def __init__(self, weight=None, min=None):
         BasicCell.__init__(self)
         if weight is not None:
-            self.weight[:] = weight
+            self.weight = weight
         if min is not None:
-            self.minSize[:] = min
+            self.minSize = min
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#~ MaxSize support
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    @classmethod
+    def new(klass):
+        self = klass.__new__(klass)
+        return self
 
-def layoutAdjustForMaxSize(self, lsize):
-    # lsize parameter must not be modified... use copies!
-    maxSize = self.maxSize
-    idx = (maxSize > 0) & (maxSize < lsize)
-    if idx.any():
-        lsize = lsize.copy()
-        lsize[idx] = maxSize
-    return lsize
-
-class MaxSizeCell(Cell):
-    maxSize = Vector.property([0,0], 'f')
-
-    def __init__(self, weight=None, min=None, max=None):
-        Cell.__init__(self, weight, min)
-        if max is not None:
-            self.maxSize[:] = max
-
-    layoutAdjustSize = layoutAdjustForMaxSize
+    def copy(self):
+        cpy = BasicCell.copy(self)
+        cpy.weight = self.weight.copy()
+        cpy.minSize = self.minSize.copy()
+        return cpy
 

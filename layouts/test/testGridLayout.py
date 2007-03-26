@@ -10,76 +10,79 @@
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-import time
+import unittest
 
-from TG.geomath.layouts.cells import *
-from TG.geomath.layouts.gridLayout import *
+import numpy
+
+from TG.geomath.layouts.cells import CellBox, Cell
+from TG.geomath.layouts.gridLayout import GridLayoutStrategy
+
+from TG.geomath.layouts.test.strategy import StrategyTestMixin
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-box = Box((0,0), (1000, 1000))
+class TestGridLayout(StrategyTestMixin, unittest.TestCase):
+    StrategyFactory = lambda self: GridLayoutStrategy(self.nRows, self.nCols)
+    hostBox = CellBox((0,0), (1000, 800))
+    nRows = 2; nCols = 2
 
-def runGridLayout(nRows=2, nCols=4, excess=4):
-    gl = GridLayoutStrategy(nRows, nCols)
-    cells = [Cell((i%2, (i//4)%2), (100, 100)) for i in xrange(nRows*nCols+excess)]
+    @property
+    def cells(self):
+        return [Cell(0, (100, 200)) for ri, ci in numpy.ndindex((self.nRows, self.nCols))]
 
-    if 1:
-        gl.inside = 10
-        gl.outside = (50, 50)
+    def testRowsCols(self):
+        self.assertEqual(self.lstrat.nRows, self.nRows)
+        self.assertEqual(self.lstrat.nCols, self.nCols)
 
-    for p in xrange(2):
-        lb = gl.layout(cells, box, not p%2)
-        print
-        print 'box:', box.tolist()
-        if lb is not None:
-            print '  layout:', lb.tolist()
-        for i, c in enumerate(cells):
-            print '    cell %s:' % i, c.box.tolist()
-        print
+    def testLBox(self):
+        self.assertEqual(self.lbox, [[0,0],[1000,800]])
+
+    def testCellBoxes(self):
+        self.assertEqual(self.cbox[0], [[ 50, 405], [495, 750]])
+        self.assertEqual(self.cbox[1], [[505, 405], [950, 750]])
+        self.assertEqual(self.cbox[2], [[ 50,  50], [495, 395]])
+        self.assertEqual(self.cbox[3], [[505,  50], [950, 395]])
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class TestGridLayout2x4(TestGridLayout):
+    nRows = 2; nCols = 4
+
+    def testCellBoxes(self):
+        self.assertEqual(self.cbox[0], [[ 50, 405], [267, 750]])
+        self.assertEqual(self.cbox[1], [[277, 405], [495, 750]])
+        self.assertEqual(self.cbox[2], [[505, 405], [722, 750]])
+        self.assertEqual(self.cbox[3], [[732, 405], [950, 750]])
+
+        self.assertEqual(self.cbox[4], [[ 50,  50], [267, 395]])
+        self.assertEqual(self.cbox[5], [[277,  50], [495, 395]])
+        self.assertEqual(self.cbox[6], [[505,  50], [722, 395]])
+        self.assertEqual(self.cbox[7], [[732,  50], [950, 395]])
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-def runGridTiming(n=100):
-    box = Box((0,0), (1000, 1000))
-    box.size *= (5, 2)
+class TestGridLayout3x3(TestGridLayout):
+    nRows = 3; nCols = 3
 
-    nRows, nCols = 10, 8
-    excess = 0
+    def testCellBoxes(self):
+        self.assertEqual(self.cbox[0], [[ 50, 523], [343, 750]])
+        self.assertEqual(self.cbox[1], [[353, 523], [646, 750]])
+        self.assertEqual(self.cbox[2], [[656, 523], [950, 750]])
 
-    gl = GridLayoutStrategy(nRows, nCols)
-    cells = [Cell((i%2, (i//4)%2), (100, 100)) for i in xrange(nRows*nCols+excess)]
+        self.assertEqual(self.cbox[3], [[ 50, 286], [343, 513]])
+        self.assertEqual(self.cbox[4], [[353, 286], [646, 513]])
+        self.assertEqual(self.cbox[5], [[656, 286], [950, 513]])
 
-    cn = max(1, len(cells)*n)
-
-    if 1:
-        gl.inside = 10
-        gl.outside = (50, 50)
-
-    if 1:
-        s = time.time()
-        for p in xrange(n):
-            gl.layout(cells, box, False)
-        dt = time.time() - s
-        print '%r time: %5s cn/s: %5s pass/s: %5s' % ((n, nRows, nCols, cn), dt, cn/dt, n/dt)
-
-    if 1:
-        s = time.time()
-        for p in xrange(n):
-            gl.layout(cells, box, True)
-        dt = time.time() - s
-        print '%r time: %5s cn/s: %5s pass/s: %5s' % ((n, nRows, nCols, cn), dt, cn/dt, n/dt)
+        self.assertEqual(self.cbox[6], [[ 50,  49], [343, 276]])
+        self.assertEqual(self.cbox[7], [[353,  49], [646, 276]])
+        self.assertEqual(self.cbox[8], [[656,  49], [950, 276]])
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#~ Main 
+#~ Unittest Main 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 if __name__=='__main__':
-    if 1:
-        runGridLayout()
-
-    # timing analysis
-    if 1:
-        runGridTiming()
+    unittest.main()
 

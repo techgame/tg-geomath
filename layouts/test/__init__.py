@@ -10,5 +10,5 @@
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-from .all import loadTestSuite
+from .all import loadTestSuite, main
 

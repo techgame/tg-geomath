@@ -6,9 +6,9 @@
 ##~ found in the LICENSE file included with this distribution.    ##
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
 
-"""Link to TG.geomath.data.test methods"""
+"""Link to TG.geomath.layouts.test methods"""
 
-from TG.geomath.data.test import loadTestSuite, main
+from TG.geomath.layouts.test import loadTestSuite, main
 
 if __name__=='__main__':
     main()

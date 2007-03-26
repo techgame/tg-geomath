@@ -67,6 +67,12 @@ class Vector(_ndarray):
     def __nonzero__(self):
         return self.size != 0
 
+    def repr(self, prefix=''):
+        leading = '<%s ' % (self.__class__.__name__,)
+        return leading + numpy.array2string(self, prefix=prefix+' '*len(leading)) + '>'
+    def __repr__(self):
+        return self.repr()
+
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     @classmethod

@@ -248,7 +248,7 @@ class Box(object):
 
     def repr(self, prefix=''):
         leading = '<%s ' % (self.__class__.__name__,)
-        return leading + numpy.array2string(self._data, prefix=prefix+' '*len(leading))
+        return leading + numpy.array2string(self._data, prefix=prefix+' '*len(leading)) + '>'
     def __repr__(self):
         return self.repr()
     def __str__(self):

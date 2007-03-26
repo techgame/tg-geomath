@@ -101,12 +101,28 @@ class HexSyntax(_VectorIndexSyntaxBase):
     def __setitem__(self, idx, hexData):
         self.vec[idx].setHex(hexData)
 
+class ColorNameSyntax(_VectorIndexSyntaxBase):
+    def __setitem__(self, idx, colorName):
+        self.vec[idx].setColorName(colorName)
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Color Vectors
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class ColorVector(Vector):
     byName = {} # filled in later
+
+    def getColorNameSyntax(self):
+        return ColorNameSyntax(self)
+    def setColorName(self, colorName):
+        self.convertFrom(self.byName[colorName])
+    name = property(getColorNameSyntax, setColorName)
+
+    def getHex(self):
+        return HexSyntax(self)
+    def setHex(self, hexData):
+        self.convertFrom(self.fromHexRaw(hexData))
+    hex = property(getHex, setHex)
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
     #~ Hex format 
@@ -283,35 +299,13 @@ class ColorVector(Vector):
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-def colorBlack(shape, dtype=None, alpha=0):
-    r = ColorVector.fromShape(shape, dtype)
-
-    if r.shape[-1] == 4 and alpha != 0:
-        r[..., :-1].fill(0)
-        if alpha < 0:
-            alpha = colorFormatTransforms[f_src]
-        r[..., -1].fill(alpha)
-    else:
-        r.fill(0)
-    return r
-
-def colorWhite(shape, dtype=None, alpha=1):
-    r = ColorVector.fromShape(shape, dtype)
-
-    if r.shape[-1] == 4 and alpha != 0:
-        r[..., :-1].fill(0)
-        if alpha < 0:
-            alpha = colorFormatTransforms[f_src]
-        r[..., -1].fill(alpha)
-    else:
-        r.fill(0)
-    return r
-
 def colorVector(data, dtype=None, copy=True, order='C', subok=True, ndmin=1):
     return ColorVector.fromData(data, dtype, copy, order, subok, ndmin)
+color = colorVector
 
 def asColorVector(data, dtype=None, copy=False, order='C', subok=True, ndmin=1):
     return ColorVector.fromData(data, dtype, copy, order, subok, ndmin)
+asColor = asColorVector
 
 def colorVectorFromUint32(v, hasAlpha=False):
     if hasAlpha:
@@ -322,6 +316,8 @@ def colorVectorFromUint32(v, hasAlpha=False):
 
     return colorVector([r, g, b, a], 'B')
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~ Define colorNameTable now, because it uses colorVectorFromUint32
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 from colorNames import colorNameTable

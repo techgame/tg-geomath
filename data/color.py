@@ -118,12 +118,6 @@ class ColorVector(Vector):
         self.convertFrom(self.byName[colorName])
     name = property(getColorNameSyntax, setColorName)
 
-    def getHex(self):
-        return HexSyntax(self)
-    def setHex(self, hexData):
-        self.convertFrom(self.fromHexRaw(hexData))
-    hex = property(getHex, setHex)
-
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
     #~ Hex format 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 

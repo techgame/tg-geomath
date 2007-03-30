@@ -10,62 +10,42 @@
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+from itertools import izip
 from numpy import ndarray, float32, asarray
-
-from . import fontData
-from . import fontTexture
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class Font(object):
-    FontMosaicImage = fontTexture.FontTextureRect
-    FontTextData = fontData.FontTextData
-    FontGeometryArray = fontData.FontGeometryArray
-    FontAdvanceArray = fontData.FontAdvanceArray
-
-    mosaicImage = None
-
+class FaceObject(object):
     charMap = None
-    geometry = None
     advance = None
     kerningMap = None
 
-    pointSize = FontAdvanceArray([1./64., 1./64., 1./64.])[0]
+    def indexesOf(self, text):
+        return asarray(map(self.charMap.get, text), 'H')
 
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    #~ Text translation
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    def textData(self, text=''):
-        raise RuntimeError("Font has not been loaded")
-
-    def translate(self, text):
-        return map(self.charMap.get, text)
-
-    def kernIndexes(self, idx, default=asarray([0., 0., 0.], 'f')):
+    def kernOffsets(self, indexes):
         km = self.kerningMap
-        if not km or len(idx) < 2:
+        if km is None or len(indexes) < 2:
             return None
         
-        r = asarray([km.get(e, default) for e in zip(idx, idx[1:])], float32)
-        return r.reshape((-1, 1, 3))
+        k0 = km[None]
+        kernOffsets = empty((len(indexes),)+k0.shape, k0.dtype)
+        kernOffsets[0] = k0
+
+        lrIndexes = izip(indexes[:-1], indexes[1:])
+        kernOffsets[1:] = [km.get(lr, k0) for lr in lrIndexes]
+        return kernOffsets
     
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def _onLoaderStart(self):
-        self.textData = None
+        pass
 
     def _onLoaderFinish(self):
-        self.textData = self.FontTextData.factoryUpdateFor(self)
-        self.texture = self.mosaicImage
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-class FontRect(Font):
-    FontMosaicImage = fontTexture.FontTextureRect
-
-class Font2d(Font):
-    FontMosaicImage = fontTexture.FontTexture2d
+        assert self.charMap is not None
+        assert self.verticies is not None
+        assert self.advance is not None
+        assert self.lineAdvance is not None
 

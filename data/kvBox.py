@@ -26,6 +26,12 @@ class KVBox(KVObject, box.Box):
     def _onViewDataChange(self, kvhost, key):
         self.kvpub('*')
 
+    @classmethod
+    def new(klass):
+        self = klass.__new__(klass)
+        klass.observerNotifyInit(self)
+        return self
+
     def viewOf(self, other, dref=None, dim=None):
         other.kvpub.add('*', self._onViewDataChange)
         if dref is None:

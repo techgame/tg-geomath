@@ -260,9 +260,7 @@ class Box(object):
 
     @classmethod
     def new(klass):
-        self = klass.__new__(klass)
-        klass.observerNotifyInit(self)
-        return self
+        return klass.__new__(klass)
 
     @classmethod
     def fromArray(klass, data):
@@ -488,6 +486,8 @@ class Box(object):
         return self._data.tostring()
     def tolist(self):
         return self._data.tolist()
+    def toflatlist(self):
+        return self._data.flatten().tolist()
 
     def __array__(self, dtype=None): 
         if dtype is not None:

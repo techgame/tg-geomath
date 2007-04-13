@@ -13,7 +13,6 @@
 import numpy
 from numpy import ndarray, multiply, asarray
 
-from TG.openGL.data import Color # XXX: Temporary use of openGL's color implementation
 from .vector import Vector, _VectorIndexSyntaxBase
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -289,7 +288,7 @@ class ColorVector(Vector):
         return dst
 
 
-#Color = ColorVector # XXX: Temporary use of openGL's color implementation
+Color = ColorVector
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

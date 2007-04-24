@@ -22,7 +22,7 @@ from TG.geomath.data.color import Color
 
 class TestLinearBezier(unittest.TestCase):
     u = [0, .125, .25, .5, .75, .875, 1]
-    cpts = Color(['#000', '#70f', '#f48', '#fff'], '4B')
+    cpts = Color(['#000', '#70f', '#f48', '#fff'], 'B')
 
     def doCVTestFor(self, rawQuestion, rawAnswer):
         q = rawQuestion.astype('B').tolist()
@@ -95,7 +95,7 @@ class TestLinearBezier(unittest.TestCase):
 
 class TestQuadraticBezier(unittest.TestCase):
     u = [0, .125, .25, .5, .75, .875, 1]
-    cpts = Color(['#000', '#70f', '#f48', '#fff'], '4B')
+    cpts = Color(['#000', '#70f', '#f48', '#fff'], 'B')
 
     def doCVTestFor(self, rawQuestion, rawAnswer):
         q = rawQuestion.astype('B').tolist()
@@ -149,7 +149,7 @@ class TestQuadraticBezier(unittest.TestCase):
 
 class TestCubicBezier(unittest.TestCase):
     u = [0, .125, .25, .5, .75, .875, 1]
-    cpts = Color(['#000', '#70f', '#f48', '#fff'], '4B')
+    cpts = Color(['#000', '#70f', '#f48', '#fff'], 'B')
 
     def doCVTestFor(self, rawQuestion, rawAnswer):
         q = rawQuestion.astype('B').tolist()

@@ -69,43 +69,16 @@ def boxBlend(alpha, boxData):
     ar = asBlend(None, alpha)[:,None]
     return (boxData*ar).sum(-3)
 
-def toAspect(size, aspect, nidx=0, didx=1):
+def toAspect(size, aspect, nidx=0, didx=1, grow=None):
     # interpret aspect parameter
-    grow = None
-    if isinstance(aspect, dict):
-        grow = aspect.get('grow', grow)
-
-        aspectIdx = aspect.get('idx')
-        if aspectIdx is not None:
-            nidx, didx = aspectIdx
-
-        aspectSize = aspect.get('size')
-        if aspectSize is not None:
-            aspect = truediv(aspectSize[nidx], aspectSize[didx])
-        else:
-            aspect = aspect['aspect']
-    elif isinstance(aspect, ndarray):
-        aspectSize = aspect
-        aspect = truediv(aspectSize[nidx], aspectSize[didx])
-    elif isinstance(aspect, tuple):
-        if isinstance(aspect[-1], slice):
-            aspectIdx = aspect[-1]
-            if aspectIdx.start is not None:
-                nidx = aspectIdx.start
-            if aspectIdx.stop is not None:
-                didx = aspectIdx.stop
-            aspect = aspect[:-1]
-
+    if isinstance(aspect, tuple):
         if isinstance(aspect[1], bool):
             aspect, grow = aspect
-        else:
-            aspectSize = aspect
-            aspect = truediv(aspectSize[nidx], aspectSize[didx])
+    if not isinstance(aspect, (int, long, float)):
+        aspect = truediv(aspect[nidx], aspect[didx])
 
     # compute
-    if not isinstance(size, ndarray):
-        size = asarray(size, float)
-
+    size = asarray(size, float)
     if aspect <= 0:
         return size
 

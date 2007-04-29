@@ -15,8 +15,10 @@ from itertools import izip
 import numpy
 from numpy import zeros_like, zeros, empty_like, empty, ndindex
 
-from .layoutData import CellBox, Vector
-from .basicLayout import BaseLayoutStrategy
+from ..data.box import Box
+from ..data.vector import Vector
+
+from .basic import BaseLayoutStrategy
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
@@ -38,33 +40,37 @@ class GridLayoutStrategy(BaseLayoutStrategy):
         self.nCols = nCols
     rowCol = property(getRowCol, setRowCol)
 
-    def layout(self, cells, box, isTrial=False):
+    def layoutCalc(self, cells, box):
+        lbox = box.copy()
         rbox = box.copy()
+
+        # figure out what our row and column sizes should be from the cells
+        rowSizes, colSizes = self.rowColSizesFor(cells, lbox)
+
+        # row and col sizes
+        lsize = rowSizes.sum(0) + colSizes.sum(0)
+
+        # plus borders along axis
+        lsize += 2*self.outside + (self.nCols-1, self.nRows-1)*self.inside
+        rbox.size = lsize
+        return rbox
+
+    def layoutCells(self, cells, box):
         lbox = box.copy()
 
         # figure out what our row and column sizes should be from the cells
         rowSizes, colSizes = self.rowColSizesFor(cells, lbox)
 
-        if isTrial:
-            # row and col sizes
-            lsize = rowSizes.sum(0) + colSizes.sum(0)
+        iCellBoxes = self.iterCellBoxes(cells, lbox, rowSizes, colSizes)
+        iCells = iter(cells)
 
-            # plus borders along axis
-            lsize += 2*self.outside + (self.nCols-1, self.nRows-1)*self.inside
-            rbox.size = lsize
-            return rbox
+        # let cells lay themselves out in their boxes
+        for cbox, c in izip(iCellBoxes, iCells):
+            c.layoutInBox(cbox)
 
-        else:
-            iCellBoxes = self.iterCellBoxes(cells, lbox, rowSizes, colSizes)
-            iCells = iter(cells)
-
-            # let cells lay themselves out in their boxes
-            for cbox, c in izip(iCellBoxes, iCells):
-                c.layoutInBox(cbox)
-
-            # hide cells that have no cbox
-            for c in iCells:
-                c.layoutInBox(None)
+        # hide cells that have no cbox
+        for c in iCells:
+            c.layoutInBox(None)
 
     def iterCellBoxes(self, cells, lbox, rowSizes, colSizes):
         posStart = lbox.pos + lbox.size*self._vaxis
@@ -73,7 +79,7 @@ class GridLayoutStrategy(BaseLayoutStrategy):
         advCol = self._haxis*self.inside
         advRow = self._vaxis*self.inside
 
-        cellBox = CellBox(posStart, posStart)
+        cellBox = Box(posStart, posStart)
         cellPos = cellBox.pos
         posRow = posStart
         for row in rowSizes:

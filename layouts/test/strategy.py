@@ -10,10 +10,42 @@
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-from TG.geomath.layouts.cells import CellBox, Cell
+from TG.geomath.layouts.basic import LayoutCell, Box, Vector
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class TestCell(LayoutCell):
+    box = Box.property()
+    weight = Vector.property([0,0], 'f')
+    minSize = Vector.property([0,0], 'f')
+
+    def __init__(self, weight=None, min=None):
+        if weight is not None:
+            self.weight = weight
+        if min is not None:
+            self.minSize = min
+
+    def layoutInBox(self, lbox):
+        if lbox is not None:
+            self.box.pv = lbox.pv
+        # else: hide
+
+    @classmethod
+    def new(klass):
+        self = klass.__new__(klass)
+        return self
+
+    def copy(self):
+        cpy = self.new()
+        cpy.box = self.box.copy()
+        cpy.weight = self.weight.copy()
+        cpy.minSize = self.minSize.copy()
+        return cpy
+
+Cell = TestCell
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class StrategyTestMixin(object):
@@ -30,9 +62,9 @@ class StrategyTestMixin(object):
         lstrat.inside = 10
         lstrat.outside = 50, 50
 
-        lbox = lstrat.layout(cells, hostBox, True)
+        lbox = lstrat.layoutCalc(cells, hostBox)
         self.lbox = lbox.astype(int).tolist()
 
-        lstrat.layout(cells, hostBox, False)
+        lstrat.layoutCells(cells, hostBox)
         self.cbox = [c.box.astype(int).tolist() for c in cells]
 

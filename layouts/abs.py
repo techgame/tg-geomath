@@ -10,7 +10,7 @@
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-from .basicLayout import BaseLayoutStrategy
+from .basic import BaseLayoutStrategy
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Simplest of all layouts... just tell each cell to "deal with it"
@@ -19,14 +19,13 @@ from .basicLayout import BaseLayoutStrategy
 class AbsLayoutStrategy(BaseLayoutStrategy):
     """AbsLayout just lets each cell know it should lay itself out"""
 
-    def layout(self, cells, box, isTrial=False):
-        if isTrial:
-            return box.copy()
+    def layoutCalc(self, cells, box):
+        return box.copy()
 
-        else:
-            lbox = box.copy()
-            self.adjustBox(lbox)
+    def layoutCells(self, cells, box):
+        lbox = box.copy()
+        lbox.inset(self.outside)
 
-            for c in cells:
-                c.layoutInBox(lbox)
+        for c in cells:
+            c.layoutInBox(lbox)
 

@@ -14,9 +14,9 @@ import unittest
 
 import numpy
 
-from TG.geomath.layouts.cells import CellBox, Cell
-from TG.geomath.layouts.flexGridLayout import FlexGridLayoutStrategy
+from TG.geomath.layouts.flexGrid import FlexGridLayoutStrategy
 
+from TG.geomath.layouts.test.strategy import Cell, Box
 from TG.geomath.layouts.test.strategy import StrategyTestMixin
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -25,7 +25,7 @@ from TG.geomath.layouts.test.strategy import StrategyTestMixin
 
 class TestFlexGridLayout(StrategyTestMixin, unittest.TestCase):
     StrategyFactory = lambda self: FlexGridLayoutStrategy(self.nRows, self.nCols)
-    hostBox = CellBox((0,0), (1000, 800))
+    hostBox = Box((0,0), (1000, 800))
     nRows = 4; nCols = 4
 
     cells = [

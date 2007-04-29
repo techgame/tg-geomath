@@ -15,7 +15,7 @@ from itertools import izip
 import numpy
 from numpy import zeros_like, zeros, empty_like, empty, ndindex
 
-from .gridLayout import GridLayoutStrategy
+from .grid import GridLayoutStrategy
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 

@@ -12,10 +12,10 @@
 
 import unittest
 
-from TG.geomath.layouts.cells import CellBox, Cell
-from TG.geomath.layouts.absLayout import AbsLayoutStrategy
+from TG.geomath.layouts.abs import AbsLayoutStrategy
 
-from TG.geomath.layouts.test.strategy import StrategyTestMixin
+from TG.geomath.layouts.test.strategy import Cell, Box
+from TG.geomath.layouts.test.strategy import StrategyTestMixin, Cell
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
@@ -23,7 +23,7 @@ from TG.geomath.layouts.test.strategy import StrategyTestMixin
 
 class TestAbsLayout(StrategyTestMixin, unittest.TestCase):
     StrategyFactory = AbsLayoutStrategy
-    hostBox = CellBox((0,0), (1000, 800))
+    hostBox = Box((0,0), (1000, 800))
     cells = [
         Cell(0, 200),
         Cell(1, 300),

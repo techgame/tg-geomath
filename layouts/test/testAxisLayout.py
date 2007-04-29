@@ -12,9 +12,9 @@
 
 import unittest
 
-from TG.geomath.layouts.cells import CellBox, Cell
-from TG.geomath.layouts.axisLayout import HorizontalLayoutStrategy, VerticalLayoutStrategy
+from TG.geomath.layouts.axis import HorizontalLayoutStrategy, VerticalLayoutStrategy
 
+from TG.geomath.layouts.test.strategy import Cell, Box
 from TG.geomath.layouts.test.strategy import StrategyTestMixin
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -23,7 +23,7 @@ from TG.geomath.layouts.test.strategy import StrategyTestMixin
 
 class TestHorizontalAxisLayout(StrategyTestMixin, unittest.TestCase):
     StrategyFactory = HorizontalLayoutStrategy
-    hostBox = CellBox((0,0), (1000, 800))
+    hostBox = Box((0,0), (1000, 800))
     cells = [
         Cell(0, 200),
         Cell(1, 300),
@@ -42,7 +42,7 @@ class TestHorizontalAxisLayout(StrategyTestMixin, unittest.TestCase):
 
 class TestVerticalAxisLayout(StrategyTestMixin, unittest.TestCase):
     StrategyFactory = VerticalLayoutStrategy
-    hostBox = CellBox((0,0), (1000, 800))
+    hostBox = Box((0,0), (1000, 800))
     cells = [
         Cell(0, 200),
         Cell(1, 300),

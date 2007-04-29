@@ -23,22 +23,51 @@ from TG.geomath.text.freetypeFontLoader import FreetypeLoader, FreetypeFace
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 def main():
+    pointSize = 16
+    dpi = 72
+    multiple = 2
+
     ftFace = FreetypeFace('/Library/Fonts/Andale Mono')
-    ftFace.setPixelSize(2*72)
+    ftFace.setCharSize(pointSize, dpi)
 
     ftLoader = FreetypeLoader()
     face1 = ftLoader.compile(ftFace)
 
-    ci = face1.indexesOf('Shane')
-    print ci
-    print (1*face1.verticies[ci[0]]).astype('i')
+    f1ci = face1.indexesOf('T')
+    ci1 = (1*face1.verticies[f1ci[0]])
+    bi1 = (1*face1.bitmapSize[f1ci[0]])
 
-    ftFace.setCharSize(2*72, 96)
+    ftFace.setCharSize(pointSize*multiple, dpi)
     face2 = ftLoader.compile(ftFace)
 
-    ci = face2.indexesOf('Shane')
-    print ci
-    print (1*face2.verticies[ci[0]]).astype('i')
+    f2ci = face2.indexesOf('T')
+    ci2 = (1*face2.verticies[f2ci[0]])
+    bi2 = (1*face2.bitmapSize[f2ci[0]])
+
+    cw1 = ci1[1] - ci1[3]
+    cw2 = ci2[1] - ci2[3]
+
+    if 1:
+        print cw1
+        print cw2
+
+    if 0:
+        print ci1
+        print ci2
+
+    if 1:
+        print 'bitmap sizes:'
+        print bi1, bi2
+        print (bi2.astype('f')/bi1) - multiple
+
+    if 1:
+        print 'widths:'
+        print ((cw2/multiple)-cw1)
+        print ((cw2)-(cw1*multiple))
+
+    if 0:
+        print ((ci2/multiple)-ci1)
+        print ((ci2)-(ci1*multiple))
 
 
 if __name__=='__main__':

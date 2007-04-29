@@ -74,6 +74,7 @@ class FreetypeLoader(object):
         count = len(gidxMap)
         verticies = empty((count, 4, 2), float32)
         advance = empty((count, 1, 2), float32)
+        bitmapSize = empty((count, 1, 2), 'H')
 
         # cache some methods
         loadGlyph = ftFace.loadGlyph
@@ -92,9 +93,11 @@ class FreetypeLoader(object):
             glyph = loadGlyph(gidx)
             verticies[aidx] = verticesFrom(glyph.metrics) * pointSize
             advance[aidx] = advanceFrom(glyph.advance) * pointSize
+            bitmapSize[aidx] = glyph.bitmapSize
 
         result.verticies = verticies
         result.advance = advance
+        result.bitmapSize = bitmapSize
         result.lineAdvance = (0.,ftFace.lineHeight)*pointSize
 
     def _verticesFrom(self, metrics):

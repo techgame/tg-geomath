@@ -10,21 +10,38 @@
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-from TG.kvObserving import KVObject
-from .layoutData import Vector
+from TG.metaObserving import MetaObservableType
+
+from ..data.box import Box
+from ..data.vector import Vector
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Layouts
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class BaseLayoutStrategy(KVObject):
+class LayoutCell(object):
+    """Abstract Base Class for a cell.
+
+    Optional attributes:
+        weight = Vector.property([0,0], 'f')
+        minSize = Vector.property([0,0], 'f')
+    """
+
+    __metaclass__ = MetaObservableType
+
+    def layoutInBox(self, lbox):
+        """Called with a Box instance or None when the cell has been placed"""
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class BaseLayoutStrategy(object):
+    __metaclass__ = MetaObservableType
+
     outside = Vector.property([0,0], 'f')
     inside = Vector.property([0,0], 'f')
 
-    def layout(self, cells, box, isTrial=False):
+    def layoutCalc(self, cells, box):
         raise NotImplementedError('Subclass Responsibility: %r' % (self,))
-
-    def adjustBox(self, box):
-        box.inset(self.outside)
-        return box
+    def layoutCells(self, cells, box):
+        raise NotImplementedError('Subclass Responsibility: %r' % (self,))
 

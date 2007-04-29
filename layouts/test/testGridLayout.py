@@ -14,9 +14,9 @@ import unittest
 
 import numpy
 
-from TG.geomath.layouts.cells import CellBox, Cell
-from TG.geomath.layouts.gridLayout import GridLayoutStrategy
+from TG.geomath.layouts.grid import GridLayoutStrategy
 
+from TG.geomath.layouts.test.strategy import Cell, Box
 from TG.geomath.layouts.test.strategy import StrategyTestMixin
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -25,7 +25,7 @@ from TG.geomath.layouts.test.strategy import StrategyTestMixin
 
 class TestGridLayout(StrategyTestMixin, unittest.TestCase):
     StrategyFactory = lambda self: GridLayoutStrategy(self.nRows, self.nCols)
-    hostBox = CellBox((0,0), (1000, 800))
+    hostBox = Box((0,0), (1000, 800))
     nRows = 2; nCols = 2
 
     @property

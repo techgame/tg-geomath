@@ -15,8 +15,10 @@ from itertools import izip
 import numpy
 from numpy import zeros_like, zeros, empty_like, empty, ndindex
 
-from .layoutData import CellBox, Vector
-from .basicLayout import BaseLayoutStrategy
+from ..data.box import Box
+from ..data.vector import Vector
+
+from .basic import BaseLayoutStrategy
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Axis Layouts
@@ -26,33 +28,35 @@ class AxisLayoutStrategy(BaseLayoutStrategy):
     _nAdjustTries = 3
     axis = Vector.property([0,0], 'b')
 
-    def layout(self, cells, box, isTrial=False):
+    def layoutCalc(self, cells, box):
+        lbox = box.copy()
         rbox = box.copy()
+        axisSizes = self.axisSizesFor(cells, lbox)
+
+        # calculate what we used of the box
+        axis = self.axis
+        lsize = (1-axis)*rbox.size
+        # add axisSize and borders along axis
+        lsize += axisSizes.sum(0) + axis*(2*self.outside + (len(axisSizes)-1)*self.inside)
+        rbox.size = lsize
+        return rbox
+
+    def layoutCells(self, cells, box):
         lbox = box.copy()
 
         # determin sizes for cells
         axisSizes = self.axisSizesFor(cells, lbox)
 
-        if isTrial:
-            # calculate what we used of the box
-            axis = self.axis
-            lsize = (1-axis)*rbox.size
-            # add axisSize and borders along axis
-            lsize += axisSizes.sum(0) + axis*(2*self.outside + (len(axisSizes)-1)*self.inside)
-            rbox.size = lsize
-            return rbox
+        iCellBoxes = self.iterCellBoxes(cells, lbox, axisSizes)
+        iCells = iter(cells)
 
-        else:
-            iCellBoxes = self.iterCellBoxes(cells, lbox, axisSizes)
-            iCells = iter(cells)
+        # let cells lay themselves out in their boxes
+        for cbox, c in izip(iCellBoxes, iCells):
+            c.layoutInBox(cbox)
 
-            # let cells lay themselves out in their boxes
-            for cbox, c in izip(iCellBoxes, iCells):
-                c.layoutInBox(cbox)
-
-            # hide cells that have no cbox
-            for c in iCells:
-                c.layoutInBox(None)
+        # hide cells that have no cbox
+        for c in iCells:
+            c.layoutInBox(None)
 
     def axisSizesFor(self, cells, lbox):
         # determin minsize
@@ -87,7 +91,7 @@ class AxisLayoutStrategy(BaseLayoutStrategy):
         nonAxisSize = (1-axis)*(lbox.size - 2*outside)
         axisBorders = axis*self.inside
 
-        cellBox = CellBox()
+        cellBox = Box()
 
         # let each cell know it's new pos and size
         p0 = lbox.pos + outside

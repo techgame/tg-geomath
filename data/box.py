@@ -179,11 +179,12 @@ class AtAspectSyntax(_BoxIndexSyntaxBase):
         else:
             return self.box.getSizeInAspect(aspect)
 
-    def __setitem__(self, aspect, size):
+    def __setitem__(self, aspect, value):
         if isinstance(aspect, tuple):
             aspect, at = aspect
-        else: at = None
-        return self.box.setAspectWithSize(aspect, size, at)
+            return self.box.setAspectWith(aspect, value, at)
+
+        else: return self.box.setAspectWith(aspect, value)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Box class -- the subject of the module
@@ -422,8 +423,8 @@ class Box(object):
     def getAspect(self, nidx=0, didx=1):
         size = self.getSize()
         return truediv(size[..., nidx], size[..., didx])
-    def setAspect(self, aspect, at=None, nidx=0, didx=1):
-        return self.setAspectWithSize(aspect, self.size, at, nidx, didx)
+    def setAspect(self, aspect, at=.5, nidx=0, didx=1):
+        return self.setAspectWith(aspect, self, at, nidx, didx)
     aspect = property(getAspect, setAspect)
     toAspect = staticmethod(toAspect)
 
@@ -432,10 +433,14 @@ class Box(object):
     def getPointsInAspect(self, aspect, at=None, nidx=0, didx=1):
         asize = self.toAspect(self.size, aspect, nidx, didx)
         return self.posForSizeAt(at, asize)
-    def setAspectWithSize(self, aspect, size, at=None, nidx=0, didx=1):
+    def setAspectWith(self, aspect, boxOrSize, at=.5, nidx=0, didx=1):
         """Transforms size by aspect, then calls setSize()"""
-        asize = self.toAspect(size, aspect, nidx, didx)
-        return self.setSize(asize, at) 
+        getPointsInAspect = getattr(boxOrSize, 'getPointsInAspect', None)
+        if getPointsInAspect is None:
+            asize = self.toAspect(size, aspect, nidx, didx)
+            self.setSize(asize, at) 
+        else:
+            self.pv = getPointsInAspect(aspect, at, nidx, didx)
 
     @property
     def atAspect(self):

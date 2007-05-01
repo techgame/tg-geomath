@@ -11,10 +11,39 @@
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 from operator import attrgetter
+from .graphPass import GraphPass
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class NodeChangePass(GraphPass):
+    depthFirst = False
+    nextLevelFor = 'parents'
+
+    def perform(self, changeStack=None):
+        visited = set()
+        changeStack = changeStack or []
+
+        itree = self.iterStack()
+        for op, node in itree:
+            if op < 0: 
+                changeStack.pop()
+                continue
+            elif node in visited:
+                itree.send(True)
+                continue
+
+            visited.add(node)
+            onTreeChange = node.onTreeChange
+            if onTreeChange is not None:
+                if onTreeChange(node, changeStack):
+                    continue
+
+            if op > 0:
+                changeStack.append(node)
+    __call__ = perform
+
 
 class GraphNode(object):
     order = 0
@@ -22,17 +51,16 @@ class GraphNode(object):
     parents = None
     children = None
     
-    def isNode(self, nodeKlass=None): 
-        if nodeKlass is not None: 
-            return isinstance(self, nodeKlass)
-        else: return True
-
     def __init__(self, **kw):
         for n,v in kw.items():
             setattr(self, n, v)
 
         self.parents = []
         self.children = []
+
+    def __del__(self):
+        self.clear()
+        assert not self.parents
 
     @classmethod
     def new(klass, **kw):
@@ -41,6 +69,11 @@ class GraphNode(object):
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     #~ Node coersion
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    def isNode(self, nodeKlass=None): 
+        if nodeKlass is not None: 
+            return isinstance(self, nodeKlass)
+        else: return True
 
     @classmethod
     def itemAsNode(klass, item, create=True):
@@ -55,87 +88,12 @@ class GraphNode(object):
         return node
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    #~ Node and Node Tree  iteration
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    def iterTree(self, depthFirst=True, nextLevelFor=(lambda cnode: cnode.children)):
-        return (cnode for op, cnode in self.iterTreeStack(depthFirst, nextLevelFor) if op >= 0)
-    def iterTreeStack(self, depthFirst=True, nextLevelFor=(lambda cnode: cnode.children)):
-        stack = [(None, iter([self]))]
-
-        while stack:
-            if depthFirst:
-                idx = len(stack) -1
-            else: idx = 0
-            ttree = stack[idx][1]
-
-            for cnode in ttree:
-                nextLevel = nextLevelFor(cnode)
-                if nextLevel:
-                    if (yield +1, cnode):
-                        yield 'cull'
-                    else:
-                        stack.append((cnode, iter(nextLevel)))
-                        if depthFirst: break
-                else: 
-                    if (yield 0, cnode):
-                        yield 'noop'
-
-            else:
-                cnode = stack.pop(idx)[0]
-                if cnode is not None:
-                    if (yield -1, cnode):
-                        yield 'noop'
-                
-    def iterParentTree(self, depthFirst=True, nextLevelFor=lambda cnode: cnode.parents):
-        return (cnode for op, cnode in self.iterTreeStack(depthFirst, nextLevelFor) if op >= 0)
-    def iterParentTreeStack(self, depthFirst=True, nextLevelFor=lambda cnode: cnode.parents):
-        return self.iterTreeStack(depthFirst, nextLevelFor)
-
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    def debugTree(self, indent=0, indentStr='  ', nextLevelFor=lambda cnode: cnode.children):
-        print
-        title = "Node Tree for: %r" % (self,)
-        print title
-        print "=" * len(title)
-
-        for op, node in self.iterTreeStack(True, nextLevelFor): 
-            if op >= 0:
-                print '%s- %r' % (indent*indentStr, node)
-            indent += op
-
-        print
-        print
-
-    def debugParentTree(self, indent=0, indentStr='  ', nextLevelFor=lambda cnode: cnode.parents):
-        return self.debugTree(indent, indentStr, nextLevelFor)
-
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     #~ Graph Change Recording
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     onTreeChange = None #onTreeChange(node, changeStack)
     def treeChanged(self, changeStack=None):
-        visited = set()
-        changeStack = changeStack or []
-
-        itree = self.iterParentTreeStack(False)
-        for op, node in itree:
-            if op < 0: 
-                changeStack.pop()
-                continue
-            elif node in visited:
-                itree.send(True)
-                continue
-
-            visited.add(node)
-            onTreeChange = node.onTreeChange
-            if onTreeChange is not None:
-                onTreeChange(node, changeStack)
-
-            if op > 0:
-                changeStack.append(node)
+        NodeChangePass(self).perform(changeStack)
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     #~ Parents collection
@@ -288,4 +246,24 @@ class GraphNode(object):
                 nodeChanges.add(node)
         self.treeChanged([nodeChanges])
 
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    #~ Tree debugging and printing
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    def printTree(self, indent=0, indentStr='  ', nextLevelFor='children'):
+        print
+        title = "Node Tree for: %r" % (self,)
+        print title
+        print "=" * len(title)
+
+        for op, node in self.iterStack(True, nextLevelFor): 
+            if op >= 0:
+                print '%s- %r' % (indent*indentStr, node)
+            indent += op
+
+        print
+        print
+
+    def printParentTree(self, indent=0, indentStr='  '):
+        return self.printTree(indent, indentStr, 'parents')
 

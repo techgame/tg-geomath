@@ -30,6 +30,11 @@ xfrmQuads2d = numpy.array([
         [[0,1],[1,0]],
         [[0,0],[1,1]],
         [[1,0],[0,1]]], 'b')
+xfrmQuadsFlip2d = numpy.array([
+        [[1,0],[0,1]],
+        [[0,0],[1,1]],
+        [[0,1],[1,0]],
+        [[1,1],[0,0]]], 'b')
 xfrmTriStrip2d = numpy.array([
         [[1,0],[0,1]],
         [[1,1],[0,0]],
@@ -42,6 +47,11 @@ xfrmQuads3d = numpy.array([
         [[0,1,0],[1,0,0]],
         [[0,0,0],[1,1,0]],
         [[1,0,0],[0,1,0]]], 'b')
+xfrmQuadsFlip3d = numpy.array([
+        [[1,0,0],[0,1,0]],
+        [[0,0,0],[1,1,0]],
+        [[0,1,0],[1,0,0]],
+        [[1,1,0],[0,0,0]]], 'b')
 xfrmTriStrip3d = numpy.array([
         [[1,0,0],[0,1,0]],
         [[1,1,0],[0,0,0]],
@@ -51,10 +61,12 @@ xfrmTriStrip3d = numpy.array([
 xfrmTable = {
     (None, 2): xfrmQuads2d, 
     ('quads', 2): xfrmQuads2d, 
+    ('quads-flip', 2): xfrmQuadsFlip2d, 
     ('tristrip', 2): xfrmTriStrip2d, 
 
     (None, 3): xfrmQuads3d, 
     ('quads', 3): xfrmQuads3d, 
+    ('quads-flip', 3): xfrmQuadsFlip3d, 
     ('tristrip', 3): xfrmTriStrip3d, 
 }
 
@@ -437,7 +449,7 @@ class Box(object):
         """Transforms size by aspect, then calls setSize()"""
         getPointsInAspect = getattr(boxOrSize, 'getPointsInAspect', None)
         if getPointsInAspect is None:
-            asize = self.toAspect(size, aspect, nidx, didx)
+            asize = self.toAspect(boxOrSize, aspect, nidx, didx)
             self.setSize(asize, at) 
         else:
             self.pv = getPointsInAspect(aspect, at, nidx, didx)

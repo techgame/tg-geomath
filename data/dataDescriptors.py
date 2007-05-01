@@ -16,19 +16,23 @@
 
 class DataProperty(object):
     missing = object()
-    private = None
     public = None
+    private = None
+    _private_fmt = '__ob_%s'
 
-    def __init__(self, data):
+    def __init__(self, data, publish=None):
+        self._setPublishName(publish)
         self.data = data
-        self.dataType = type(data)
+
+    def _setPublishName(self, publish):
+        if publish is None or isinstance(self.public, str):
+            return
+
+        self.public = publish
+        self.private = self._private_fmt % (publish,)
 
     def onObservableClassInit(self, propertyName, obKlass):
-        self.public = propertyName
-        self.private = "__ob_"+propertyName
-    def onObservableInit(self, propertyName, obInst):
-        if self.data is not None:
-            self.__get__(obInst, obInst.__class__)
+        self._setPublishName(propertyName)
 
     def __get__(self, obInst, obKlass):
         if obInst is None:
@@ -49,7 +53,7 @@ class DataProperty(object):
             self.__set__(obInst, result)
             return (True, result)
     def __set__(self, obInst, value):
-        if isinstance(value, self.dataType):
+        if isinstance(value, self.data.__class__):
             setattr(obInst, self.private, value)
             self._modified_(obInst)
             return 
@@ -61,28 +65,22 @@ class DataProperty(object):
         pass
 
 def dataProperty(klass, *args, **kw):
+    publish = kw.pop('publish', None)
     data = klass(*args, **kw)
-    return DataProperty(data)
+    return DataProperty(data, publish)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ KV Data Property
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class KVDataProperty(DataProperty):
-    def __init__(self, data=NotImplemented, publish=None):
-        if publish:
-            self.public = publish
-        DataProperty.__init__(self, data)
-
-    def onObservableClassInit(self, propertyName, obKlass):
-        if self.public is None:
-            self.public = propertyName
-        self.private = "__kv_"+propertyName
+    _private_fmt = '__kv_%s'
 
     def _modified_(self, obInst):
         obInst.kvpub(self.public, obInst)
 
 def kvDataProperty(klass, *args, **kw):
+    publish = kw.pop('publish', None)
     data = klass(*args, **kw)
-    return KVDataProperty(data)
+    return KVDataProperty(data, publish)
 

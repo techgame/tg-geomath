@@ -250,20 +250,21 @@ class GraphNode(object):
     #~ Tree debugging and printing
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    def printTree(self, indent=0, indentStr='  ', nextLevelFor='children'):
-        print
+    def printTree(self, nextLevelFor='children', indent=0, indentStr='  ', fout=None):
+        print >> fout
         title = "Node Tree for: %r" % (self,)
-        print title
-        print "=" * len(title)
+        print >> fout, title
+        print >> fout, "=" * len(title)
 
-        for op, node in self.iterStack(True, nextLevelFor): 
+        itree = GraphPass(self).iterStack(True, nextLevelFor)
+        for op, node in itree:
             if op >= 0:
-                print '%s- %r' % (indent*indentStr, node)
+                print >> fout, '%s- %r' % (indent*indentStr, node)
             indent += op
 
-        print
-        print
+        print >> fout
+        print >> fout
 
-    def printParentTree(self, indent=0, indentStr='  '):
-        return self.printTree(indent, indentStr, 'parents')
+    def printParentTree(self, nextLevelFor='parents', indent=0, indentStr='  ', fout=None, ):
+        return self.printTree(nextLevelFor, indent, indentStr, fout)
 

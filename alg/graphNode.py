@@ -23,12 +23,9 @@ class NodeChangePass(GraphPass):
 
     def perform(self, changeStack=None):
         visited = set()
-        changeStack = changeStack or []
-
         itree = self.iterStack()
         for op, node in itree:
             if op < 0: 
-                changeStack.pop()
                 continue
             elif node in visited:
                 itree.send(True)
@@ -37,11 +34,8 @@ class NodeChangePass(GraphPass):
             visited.add(node)
             onTreeChange = node.onTreeChange
             if onTreeChange is not None:
-                if onTreeChange(node, changeStack):
+                if onTreeChange(node):
                     continue
-
-            if op > 0:
-                changeStack.append(node)
     __call__ = perform
 
 
@@ -93,7 +87,7 @@ class GraphNode(object):
 
     onTreeChange = None #onTreeChange(node, changeStack)
     def treeChanged(self, changeStack=None):
-        NodeChangePass(self).perform(changeStack)
+        NodeChangePass(self).perform()
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     #~ Parents collection

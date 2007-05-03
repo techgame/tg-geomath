@@ -13,7 +13,7 @@
 import numpy
 from numpy import ndarray, multiply, asarray
 
-from .vector import Vector, _VectorIndexSyntaxBase
+from .vector import Vector, _VectorIndexSyntaxBase, VectorItemProperty
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Constants
@@ -110,6 +110,13 @@ class ColorNameSyntax(_VectorIndexSyntaxBase):
 
 class ColorVector(Vector):
     byName = {} # filled in later
+
+    r = VectorItemProperty(numpy.s_[..., 0])
+    g = VectorItemProperty(numpy.s_[..., 1])
+    b = VectorItemProperty(numpy.s_[..., 2])
+    rgb = VectorItemProperty(numpy.s_[..., 0:3])
+
+    a = VectorItemProperty(numpy.s_[..., 3])
 
     def getColorNameSyntax(self):
         return ColorNameSyntax(self)

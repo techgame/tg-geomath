@@ -108,7 +108,7 @@ class GridLayoutStrategy(BaseLayoutStrategy):
         borders = 2*self.outside + (nCols-1, nRows-1)*self.inside
 
         gridMinSize = borders + cellsMinSize
-        lbox.size[:] = numpy.max([lbox.size, gridMinSize], 0)
+        lbox.size = numpy.max([lbox.size, gridMinSize], 0)
 
         # figure out what our starting size minus borders is
         availSize = lbox.size - borders 
@@ -131,5 +131,5 @@ class GridLayoutStrategy(BaseLayoutStrategy):
         for c, idx in izip(cells, idxWalk):
             minSizes[idx] = (getattr(c, 'minSize', None) or default)
 
-        return minSizes.reshape((-1, 2)).min(0)
+        return minSizes.reshape((-1, 2)).max(0)
 

@@ -45,6 +45,8 @@ class BaseLayoutStrategy(object):
     def layoutCells(self, cells, box):
         raise NotImplementedError('Subclass Responsibility: %r' % (self,))
 
+    def fit(self, cells, box):
+        return self.layoutCalc(cells, box)
     def __call__(self, cells, box):
         return self.layoutCells(cells, box)
 

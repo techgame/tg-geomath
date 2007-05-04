@@ -24,7 +24,7 @@ from TG.geomath.layouts.test.strategy import StrategyTestMixin
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class TestFlexGridLayout(StrategyTestMixin, unittest.TestCase):
-    StrategyFactory = lambda self: FlexGridLayoutStrategy(self.nRows, self.nCols)
+    StrategyFactory = lambda self: FlexGridLayoutStrategy((self.nRows, self.nCols))
     hostBox = Box((0,0), (1000, 800))
     nRows = 4; nCols = 4
 

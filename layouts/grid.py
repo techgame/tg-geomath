@@ -25,20 +25,25 @@ from .basic import BaseLayoutStrategy
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class GridLayoutStrategy(BaseLayoutStrategy):
-    nRows = nCols = None
-
+    rowsCols = Vector.property([2,2], 'b')
     _haxis = Vector([1,0], 'b')
     _vaxis = Vector([0,1], 'b')
 
-    def __init__(self, nRows=2, nCols=2):
-        self.setRowCol(nRows, nCols)
+    def __init__(self, rowsCols=(2,2)):
+        self.rowsCols = rowsCols
 
-    def getRowCol(self):
-        return self.nRows, self.nCols
-    def setRowCol(self, nRows=2, nCols=2):
-        self.nRows = nRows
-        self.nCols = nCols
-    rowCol = property(getRowCol, setRowCol)
+    def getNRows(self):
+        return self.rowsCols[0]
+    def setNRows(self, nRows):
+        self.rowsCols[0] = nRows
+    nRows = property(getNRows, setNRows)
+
+    def getNCols(self):
+        return self.rowsCols[1]
+    def setNCols(self, nCols):
+        self.rowsCols[1] = nCols
+    nCols = property(getNCols, setNCols)
+
 
     def layoutCalc(self, cells, box):
         lbox = box.copy()
@@ -51,7 +56,8 @@ class GridLayoutStrategy(BaseLayoutStrategy):
         lsize = rowSizes.sum(0) + colSizes.sum(0)
 
         # plus borders along axis
-        lsize += 2*self.outside + (self.nCols-1, self.nRows-1)*self.inside
+        nRows, nCols = self.rowsCols
+        lsize += 2*self.outside + (nCols-1, nRows-1)*self.inside
         rbox.size = lsize
         return rbox
 
@@ -99,7 +105,7 @@ class GridLayoutStrategy(BaseLayoutStrategy):
 
     def rowColSizesFor(self, cells, lbox):
         vaxis = self._vaxis; haxis = self._haxis
-        nRows = self.nRows; nCols = self.nCols
+        nRows, nCols = self.rowsCols
 
         cellsMinSize = self.cellsMinSize(cells)
         cellsMinSize *= (nCols, nRows)
@@ -123,7 +129,7 @@ class GridLayoutStrategy(BaseLayoutStrategy):
         return rowSizes, colSizes
 
     def cellsMinSize(self, cells, default=zeros((2,), 'f')):
-        nRows = self.nRows; nCols = self.nCols
+        nRows, nCols = self.rowsCols
         minSizes = empty((nRows, nCols, 2), 'f')
 
         # grab cell info into minSize and weights arrays

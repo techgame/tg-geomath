@@ -24,7 +24,7 @@ from .grid import GridLayoutStrategy
 class FlexGridLayoutStrategy(GridLayoutStrategy):
     def rowColSizesFor(self, cells, lbox):
         vaxis = self._vaxis; haxis = self._haxis
-        nRows = self.nRows; nCols = self.nCols
+        nRows, nCols = self.rowsCols
 
         # determin weights and sizes for rows and columns
         weights, minSizes = self.cellWeightsMinSizes(cells)
@@ -70,7 +70,7 @@ class FlexGridLayoutStrategy(GridLayoutStrategy):
         return rowSizes, colSizes
 
     def cellWeightsMinSizes(self, cells, default=zeros((2,), 'f')):
-        nRows = self.nRows; nCols = self.nCols
+        nRows, nCols = self.rowsCols
         minSizes = empty((nRows, nCols, 2), 'f')
         weights = empty((nRows, nCols, 2), 'f')
 

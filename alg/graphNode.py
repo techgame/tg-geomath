@@ -148,7 +148,7 @@ class GraphNode(object):
         self.remove(other)
         return self
 
-    def insertNew(self, idx):
+    def insertNew(self, idx=0):
         return self.insert(idx, self.new())
     def insert(self, idx, item):
         node = self.itemAsNode(item)
@@ -175,6 +175,8 @@ class GraphNode(object):
 
     def addNew(self):
         return self.add(self.new())
+    appendNew = addNew
+
     def add(self, item):
         if isinstance(item, list):
             return self.extend(item)

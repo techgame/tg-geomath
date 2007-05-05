@@ -27,9 +27,9 @@ class VectorItemProperty(object):
     def __get__(self, obj, objKlass=None):
         if obj is None:
             return self
-        return obj._data[self.key]
+        return obj[self.key]
     def __set__(self, obj, value):
-        obj._data[self.key] = value
+        obj[self.key] = value
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -47,10 +47,10 @@ class Vector(_ndarray):
     __array_priority__ = 20.0
     default_dtype = numpy.float
 
-    v0 = VectorItemProperty(numpy.s_[..., 0])
-    v1 = VectorItemProperty(numpy.s_[..., 1])
-    v2 = VectorItemProperty(numpy.s_[..., 2])
-    v3 = VectorItemProperty(numpy.s_[..., 3])
+    v0 = VectorItemProperty(numpy.s_[..., 0:1])
+    v1 = VectorItemProperty(numpy.s_[..., 1:2])
+    v2 = VectorItemProperty(numpy.s_[..., 2:3])
+    v3 = VectorItemProperty(numpy.s_[..., 3:4])
 
     vd1 = VectorItemProperty(numpy.s_[..., 0:1])
     vd2 = VectorItemProperty(numpy.s_[..., 0:2])

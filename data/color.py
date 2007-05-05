@@ -111,12 +111,12 @@ class ColorNameSyntax(_VectorIndexSyntaxBase):
 class ColorVector(Vector):
     byName = {} # filled in later
 
-    r = VectorItemProperty(numpy.s_[..., 0])
-    g = VectorItemProperty(numpy.s_[..., 1])
-    b = VectorItemProperty(numpy.s_[..., 2])
+    r = VectorItemProperty(numpy.s_[..., 0:1])
+    g = VectorItemProperty(numpy.s_[..., 1:2])
+    b = VectorItemProperty(numpy.s_[..., 2:3])
     rgb = VectorItemProperty(numpy.s_[..., 0:3])
 
-    a = VectorItemProperty(numpy.s_[..., 3])
+    a = VectorItemProperty(numpy.s_[..., 3:4])
 
     def getColorNameSyntax(self):
         return ColorNameSyntax(self)
@@ -193,7 +193,7 @@ class ColorVector(Vector):
     @classmethod
     def fromHexRaw(klass, hexColorData, hexFormatMap=hexFormatMap, hexRemapNto4=hexRemapNto4):
         if isinstance(hexColorData, basestring):
-            hexColorData = [hexColorData]
+            hexColorData = hexColorData.rstrip(';').split(';')
 
         colorResult = klass.fromShape((len(hexColorData), 4), 'B')
         for i in xrange(len(colorResult)):

@@ -10,6 +10,7 @@
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+import weakref
 from operator import attrgetter
 from .graphPass import GraphPass
 
@@ -21,7 +22,7 @@ class NodeChangePass(GraphPass):
     depthFirst = False
     nextLevelFor = 'parents'
 
-    def perform(self, changeStack=None):
+    def perform(self, cause=None):
         visited = set()
         itree = self.iterStack()
         for op, node in itree:
@@ -34,7 +35,7 @@ class NodeChangePass(GraphPass):
             visited.add(node)
             onTreeChange = node.onTreeChange
             if onTreeChange is not None:
-                if onTreeChange(node):
+                if onTreeChange(node, cause):
                     continue
     __call__ = perform
 
@@ -51,10 +52,6 @@ class GraphNode(object):
 
         self.parents = []
         self.children = []
-
-    def __del__(self):
-        self.clear()
-        assert not self.parents
 
     @classmethod
     def new(klass, **kw):
@@ -85,9 +82,9 @@ class GraphNode(object):
     #~ Graph Change Recording
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    onTreeChange = None #onTreeChange(node, changeStack)
-    def treeChanged(self, changeStack=None):
-        NodeChangePass(self).perform()
+    onTreeChange = None #onTreeChange(node, cause)
+    def treeChanged(self, cause=None):
+        NodeChangePass(self).perform(cause)
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     #~ Parents collection
@@ -154,7 +151,7 @@ class GraphNode(object):
         node = self.itemAsNode(item)
         if node.onAddToParent(self):
             self.children.insert(idx, node)
-            self.treeChanged([node])
+            self.treeChanged(node)
             return node
 
     def insertBefore(self, item, nidx):
@@ -184,7 +181,7 @@ class GraphNode(object):
         node = self.itemAsNode(item)
         if node.onAddToParent(self):
             self.children.append(node)
-            self.treeChanged([node])
+            self.treeChanged(node)
             return node
     append = add
 
@@ -202,7 +199,9 @@ class GraphNode(object):
             if node.onAddToParent(self):
                 children.append(node)
                 nodeChanges.add(node)
-        self.treeChanged([nodeChanges])
+
+        if nodeChanges:
+            self.treeChanged(nodeChanges)
     def extendAt(self, idx, iterable):
         itemAsNode = self.itemAsNode
         newChildren = []
@@ -213,8 +212,10 @@ class GraphNode(object):
             if node.onAddToParent(self):
                 newChildren.append(node)
                 nodeChanges.add(node)
-        self.children[idx:idx] = newChildren
-        self.treeChanged([nodeChanges])
+
+        if nodeChanges:
+            self.children[idx:idx] = newChildren
+            self.treeChanged(nodeChanges)
 
     def remove(self, item):
         if isinstance(item, list):
@@ -224,31 +225,33 @@ class GraphNode(object):
             return
         if node.onRemoveFromParent(self):
             self.children.remove(node)
-            self.treeChanged([node])
+            self.treeChanged(node)
             return node
     def removeAt(self, idx):
         node = self.children[idx]
         if node.onRemoveFromParent(self):
             del self.children[idx]
-            self.treeChanged([node])
+            self.treeChanged(node)
             return node
 
     def _removeNodeList(self, nodeList):
         if not isinstance(nodeList, list):
             nodeList = [nodeList]
+
         nodeChanges = set()
         for node in nodeList:
             if node.onRemoveFromParent(self):
                 nodeChanges.add(node)
-        self.treeChanged([nodeChanges])
+
+        if nodeChanges:
+            self.treeChanged(nodeChanges)
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     #~ Tree debugging and printing
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    def printTree(self, nextLevelFor='children', indent=0, indentStr='  ', fout=None):
-        print >> fout
-        title = "Node Tree for: %r" % (self,)
+    def printTree(self, nextLevelFor='children', indent=0, indentStr='  ', title="Node Tree for: %r", fout=None):
+        title = title % (self,)
         print >> fout, title
         print >> fout, "=" * len(title)
 
@@ -257,9 +260,6 @@ class GraphNode(object):
             if op >= 0:
                 print >> fout, '%s- %r' % (indent*indentStr, node)
             indent += op
-
-        print >> fout
-        print >> fout
 
     def printParentTree(self, nextLevelFor='parents', indent=0, indentStr='  ', fout=None, ):
         return self.printTree(nextLevelFor, indent, indentStr, fout)

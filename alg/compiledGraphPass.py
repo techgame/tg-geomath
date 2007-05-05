@@ -43,7 +43,7 @@ class CompiledGraphPass(GraphPass):
         if singlePass is not self.singlePass:
             self.singlePass = singlePass
 
-    def _node_onTreeRootChange(self, rootNode, treeChanges=None):
+    def _node_onTreeRootChange(self, rootNode, cause=None):
         self._cachePassList(None)
         return True
 

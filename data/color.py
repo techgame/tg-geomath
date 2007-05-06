@@ -193,7 +193,7 @@ class ColorVector(Vector):
     @classmethod
     def fromHexRaw(klass, hexColorData, hexFormatMap=hexFormatMap, hexRemapNto4=hexRemapNto4):
         if isinstance(hexColorData, basestring):
-            hexColorData = hexColorData.rstrip(';').split(';')
+            hexColorData = [e.strip() for e in hexColorData.rstrip(';').split(';')]
 
         colorResult = klass.fromShape((len(hexColorData), 4), 'B')
         for i in xrange(len(colorResult)):

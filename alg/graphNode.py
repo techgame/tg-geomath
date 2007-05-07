@@ -36,6 +36,7 @@ class NodeChangePass(GraphPass):
             onTreeChange = node.onTreeChange
             if onTreeChange is not None:
                 if onTreeChange(node, cause):
+                    itree.send(True)
                     continue
     __call__ = perform
 
@@ -43,19 +44,21 @@ class NodeChangePass(GraphPass):
 class GraphNode(object):
     order = 0
 
-    parents = None
-    children = None
-    
     def __init__(self, **kw):
         for n,v in kw.items():
             setattr(self, n, v)
 
-        self.parents = []
-        self.children = []
+        self._parents = []
+        self._children = []
 
     @classmethod
     def new(klass, **kw):
         return klass(**kw)
+
+    def asWeakRef(self, cb=None, ref=weakref.ref):
+        return ref(self, cb)
+    def asWeakProxy(self, cb=None, proxy=weakref.proxy):
+        return proxy(self, cb)
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     #~ Node coersion
@@ -90,28 +93,42 @@ class GraphNode(object):
     #~ Parents collection
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+    _parents = None
+    def getParents(self):
+        return [p() for p in self._parents]
+    parents = property(getParents)
+
     def onAddToParent(self, parent):
-        if parent not in self.parents:
-            self.parents.append(parent)
+        collection = self._parents
+        parent = parent.asWeakRef()
+        if parent not in collection:
+            collection.append(parent)
         return True
         
     def onRemoveFromParent(self, parent):
-        while parent in self.parents:
-            self.parents.remove(parent)
+        collection = self._parents
+        parent = parent.asWeakRef()
+        if parent in collection:
+            collection.remove(parent)
         return True
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     #~ Children collection
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+    _children = None
+    def getChildren(self):
+        return self._children
+    children = property(getChildren)
+    
     def __len__(self):
-        return len(self.children)
+        return len(self._children)
 
     def __iter__(self):
-        return iter(self.children)
+        return iter(self._children)
 
     def __getitem__(self, idx):
-        return self.children[idx]
+        return self._children[idx]
     def __setitem__(self, idx, value):
         if isinstance(idx, slice):
             if idx.step is not None:
@@ -124,8 +141,8 @@ class GraphNode(object):
             self.insert(idx, value)
 
     def __delitem__(self, idx):
-        nodeList = self.children[idx]
-        del self.children[idx]
+        nodeList = self._children[idx]
+        del self._children[idx]
         self._removeNodeList(nodeList)
 
     def clear(self):
@@ -133,10 +150,10 @@ class GraphNode(object):
 
     def __contains__(self, other):
         node = self.itemAsNode(other, False)
-        return node in self.children
+        return node in self._children
 
     def sort(self, key=attrgetter('order')):
-        self.children.sort(key=key)
+        self._children.sort(key=key)
 
     def __iadd__(self, other):
         self.add(other)
@@ -150,19 +167,19 @@ class GraphNode(object):
     def insert(self, idx, item):
         node = self.itemAsNode(item)
         if node.onAddToParent(self):
-            self.children.insert(idx, node)
+            self._children.insert(idx, node)
             self.treeChanged(node)
             return node
 
     def insertBefore(self, item, nidx):
-        """Inserts item before index of nidx in children"""
+        """Inserts item before index of nidx in _children"""
         nidx = self.itemAsNode(nidx, False)
-        idx = self.children.index(nidx)
+        idx = self._children.index(nidx)
         return self.insert(idx, item)
     def insertAfter(self, item, nidx):
-        """Inserts item after index of nidx in children"""
+        """Inserts item after index of nidx in _children"""
         nidx = self.itemAsNode(nidx, False)
-        idx = self.children.index(nidx) + 1
+        idx = self._children.index(nidx) + 1
         return self.insert(idx, item)
 
     def newParent(self):
@@ -180,7 +197,7 @@ class GraphNode(object):
 
         node = self.itemAsNode(item)
         if node.onAddToParent(self):
-            self.children.append(node)
+            self._children.append(node)
             self.treeChanged(node)
             return node
     append = add
@@ -191,13 +208,13 @@ class GraphNode(object):
 
     def extend(self, iterable):
         itemAsNode = self.itemAsNode
-        children = self.children
+        _children = self._children
 
         nodeChanges = set()
         for each in iterable:
             node = itemAsNode(each)
             if node.onAddToParent(self):
-                children.append(node)
+                _children.append(node)
                 nodeChanges.add(node)
 
         if nodeChanges:
@@ -214,7 +231,7 @@ class GraphNode(object):
                 nodeChanges.add(node)
 
         if nodeChanges:
-            self.children[idx:idx] = newChildren
+            self._children[idx:idx] = newChildren
             self.treeChanged(nodeChanges)
 
     def remove(self, item):
@@ -224,13 +241,13 @@ class GraphNode(object):
         if node is None: 
             return
         if node.onRemoveFromParent(self):
-            self.children.remove(node)
+            self._children.remove(node)
             self.treeChanged(node)
             return node
     def removeAt(self, idx):
-        node = self.children[idx]
+        node = self._children[idx]
         if node.onRemoveFromParent(self):
-            del self.children[idx]
+            del self._children[idx]
             self.treeChanged(node)
             return node
 

@@ -17,18 +17,10 @@ from .graphPass import GraphPass
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class CallTree(object):
-    def on(self, fn):
-        self.add(fn)
-        return fn
     def add(self, *fns):
         self._wind.extend(fns)
-
-    def onUnwind(self, fn):
-        self.addUnwind(fn)
-        return fn
     def addUnwind(self, *fns):
         self._unwind.extend(fns)
-
     def cull(self, bCull=True):
         self._cull = bCull
 

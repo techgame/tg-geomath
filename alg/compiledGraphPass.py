@@ -24,6 +24,42 @@ class CallTree(object):
     def cull(self, bCull=True):
         self._cull = bCull
 
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    def _compile_(self, itree, compileNodeTo):
+        self._wind = []
+        self._unwind = []
+        self._stack = []
+
+        performOp = self._op_
+        for op, node in itree:
+            self._cull = False
+            performOp(op, node, itree, compileNodeTo)
+
+        assert not self._unwind, ('Unwind list not empty:', self._unwind)
+        assert not self._stack, ('Unwind stack not empty:', self._stack)
+        return self._wind
+
+    def _op_(self, op, node, itree, compileNodeTo):
+        if op < 0:
+            self._wind.extend(self._unwind)
+            self._wind.extend(self._stack.pop())
+            del self._unwind[:]
+            return
+
+        compileNodeTo(node, self)
+
+        if op == 0 or self._cull:
+            self._wind.extend(self._unwind)
+            del self._unwind[:]
+
+            if op > 0: 
+                itree.send(True)
+
+        else: # op > 0
+            self._stack.append(self._unwind)
+            self._unwind = []
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class CompiledGraphPass(GraphPass):
@@ -49,36 +85,8 @@ class CompiledGraphPass(GraphPass):
         if result is not None:
             return result
 
-        compileNodeTo = self.compileNodeTo
         ct = self.newCallTree()
-        ct._wind = []; ct._unwind = []; ct._stack = []
-
-        itree = self.iterStack()
-        for op, node in itree:
-            ct._cull = False
-
-            if op < 0:
-                ct._wind.extend(ct._unwind)
-                ct._wind.extend(ct._stack.pop())
-                del ct._unwind[:]
-                continue
-
-            compileNodeTo(node, ct)
-
-            if op == 0 or ct._cull:
-                ct._wind.extend(ct._unwind)
-                del ct._unwind[:]
-
-                if op > 0: itree.send(True)
-
-            else: # op > 0
-                ct._stack.append(ct._unwind)
-                ct._unwind = []
-
-        result = ct._wind
-        assert not ct._unwind, ('Unwind list not empty:', self._unwind)
-        assert not ct._stack, ('Unwind stack not empty:', self._stack)
-
+        result = ct._compile_(self.iterStack(), self.compileNodeTo)
         self._cachePassList(result)
         return result
 

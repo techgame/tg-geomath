@@ -16,91 +16,88 @@ from .graphPass import GraphPass
 #~ Compiled Graph Pass
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class CallTree(object):
-    def add(self, *fns):
-        self._wind.extend(fns)
-    def addUnwind(self, *fns):
-        self._unwind.extend(fns)
+class CompileStack(object):
+    def add(self, *items):
+        self._result.extend(items)
+    def addUnwind(self, *items):
+        self._unwind.extend(items)
     def cull(self, bCull=True):
         self._cull = bCull
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+    def __len__(self):
+        return len(self._result)
+    def __iter__(self):
+        return iter(self._result)
+
     def _compile_(self, itree, compileNodeTo):
-        self._wind = []
+        self._cull = False
+        self._result = []
         self._unwind = []
         self._stack = []
 
-        performOp = self._op_
-        for op, node in itree:
-            self._cull = False
-            performOp(op, node, itree, compileNodeTo)
+        pop = self._pop_
+        step = self._step_
+        for op, cnode in itree:
+            if op < 0:
+                pop(op, cnode)
+                continue
 
-        assert not self._unwind, ('Unwind list not empty:', self._unwind)
-        assert not self._stack, ('Unwind stack not empty:', self._stack)
-        return self._wind
+            compileNodeTo(cnode, self)
 
-    def _op_(self, op, node, itree, compileNodeTo):
-        if op < 0:
-            self._wind.extend(self._unwind)
-            self._wind.extend(self._stack.pop())
-            del self._unwind[:]
-            return
-
-        compileNodeTo(node, self)
-
-        if op == 0 or self._cull:
-            self._wind.extend(self._unwind)
-            del self._unwind[:]
-
-            if op > 0: 
+            if self._cull:
                 itree.send(True)
+                op = 0
+                self._cull = False
 
-        else: # op > 0
+            step(op, cnode)
+
+        del self._cull
+        del self._unwind
+        del self._stack
+        return self
+
+    def _pop_(self, op, cnode):
+        self._result.extend(self._unwind)
+        self._result.extend(self._stack.pop())
+        del self._unwind[:]
+
+    def _step_(self, op, cnode):
+        if op > 0:
             self._stack.append(self._unwind)
             self._unwind = []
+
+        else:
+            self._result.extend(self._unwind)
+            del self._unwind[:]
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class CompiledGraphPass(GraphPass):
-    singlePass = False
+    def newCompileStack(self, key, root):
+        return CompileStack()
 
-    def __init__(self, node, singlePass=False):
-        self.node = node
-        node.onTreeChange = self._node_onTreeRootChange
-        if singlePass is not self.singlePass:
-            self.singlePass = singlePass
+    def compile(self, key, root=None):
+        if root is None:
+            root = self.root
 
-    def _node_onTreeRootChange(self, rootNode, cause=None):
-        self._cachePassList(None)
-        return True
-
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    def newCallTree(self):
-        return CallTree()
-
-    def compile(self):
-        result = self._cachePassList()
+        result = self._getCached(key, root)
         if result is not None:
             return result
 
-        ct = self.newCallTree()
-        result = ct._compile_(self.iterStack(), self.compileNodeTo)
-        self._cachePassList(result)
+        ct = self.newCompileStack(key, root)
+        itree = self.iterNodeStack(root)
+        result = ct._compile_(itree, self.compileNodeTo)
+
+        self._setCached(key, root, result)
         return result
 
-    _passList = None
-    def _cachePassList(self, passList=NotImplemented):
-        if passList is not NotImplemented:
-            if passList is None:
-                self._passList = None
-            elif self.singlePass:
-                self._passList = []
-            else:
-                self._passList = passList 
-        return self._passList
-
-    def compileNodeTo(self, node, ct):
+    def compileNodeTo(self, cnode, ct):
         raise NotImplementedError('Subclass Responsibility: %r' % (self,))
+
+    def _getCached(self, key, root):
+        return getattr(self, key, None), None
+    def _setCached(self, key, root, result):
+        setattr(self, key, result)
 

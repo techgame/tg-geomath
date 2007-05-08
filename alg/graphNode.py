@@ -44,16 +44,13 @@ class NodeChangePass(GraphPass):
 class GraphNode(object):
     order = 0
 
-    def __init__(self, **kw):
-        for n,v in kw.items():
-            setattr(self, n, v)
-
+    def __init__(self):
         self._parents = []
         self._children = []
 
     @classmethod
-    def new(klass, **kw):
-        return klass(**kw)
+    def new(klass):
+        return klass()
 
     def asWeakRef(self, cb=None, ref=weakref.ref):
         return ref(self, cb)
@@ -80,6 +77,11 @@ class GraphNode(object):
             raise ValueError("Expected a Node, but received %r" % (item.__class__,))
 
         return node
+
+    def iter(self):
+        return GraphPass(self).iter()
+    def iterParents(self):
+        return GraphPass(self).iter(nextLevelFor='parents')
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     #~ Graph Change Recording

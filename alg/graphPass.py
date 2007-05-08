@@ -12,6 +12,7 @@
 
 class GraphPass(object):
     depthFirst = True
+    skipRoot = False
     nextLevelFor = 'children'
     levelStrategies = {
         'children': (lambda cnode: cnode.children),
@@ -21,20 +22,35 @@ class GraphPass(object):
         -1: (lambda cnode: cnode.parents),
         }
 
-    def __init__(self, node):
-        self.node = node
+    def __init__(self, root=None):
+        if root is not None:
+            self.root = root
 
-    def iter(self, depthFirst=None, nextLevelFor=None):
-        return (cnode for op, cnode in self.iterStack(depthFirst, nextLevelFor) if op >= 0)
+    def iter(self, depthFirst=None, nextLevelFor=None, skipRoot=None):
+        return (cnode for op, cnode in 
+                    self.iterNodeStack(None, depthFirst, nextLevelFor, skipRoot)
+                        if op >= 0)
     __iter__ = iter 
 
-    def iterStack(self, depthFirst=None, nextLevelFor=None):
+    def iterStack(self, depthFirst=None, nextLevelFor=None, skipRoot=None):
+        return self.iterNodeStack(None, depthFirst, nextLevelFor, skipRoot)
+
+    def iterNodeStack(self, root=None, depthFirst=None, nextLevelFor=None, skipRoot=None):
+        if root is None:
+            root = self.root
         if depthFirst is None:
             depthFirst = self.depthFirst
         if nextLevelFor is None:
             nextLevelFor = self.nextLevelFor
+        if skipRoot is None:
+            skipRoot = self.skipRoot
+
         nextLevelFor = self.levelStrategies.get(nextLevelFor, nextLevelFor)
-        stack = [(None, iter([self.node]))]
+        if skipRoot:
+            nextLevel = nextLevelFor(root)
+        else: nextLevel = [root]
+
+        stack = [(None, iter(nextLevel))]
 
         while stack:
             if depthFirst:

@@ -430,6 +430,11 @@ class Box(object):
         self._data_changed_
     d = depth = property(getDepth, setDepth)
 
+    def merge(self, other):
+        d = self._data; o = other._data
+        d[..., 0, :] = numpy.min([d[..., 0, :], o[..., 0, :]], 0)
+        d[..., 1, :] = numpy.max([d[..., 1, :], o[..., 1, :]], 0)
+
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def getAspect(self, nidx=0, didx=1):

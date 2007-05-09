@@ -136,8 +136,8 @@ class AtSyntax(_BoxIndexSyntaxBase):
             if key.step is not None:
                 raise ValueError("At syntax does not support slice step value")
 
-            rsize0 = key.start
-            rsize1 = key.stop
+            rsize0 = asarray(key.start)
+            rsize1 = asarray(key.stop)
             if rsize0 is None: 
                 rsize0 = 0
             if rsize1 is None: 
@@ -152,8 +152,8 @@ class AtSyntax(_BoxIndexSyntaxBase):
             if key.step is not None:
                 raise ValueError("At syntax does not support slice step value")
 
-            rsize0 = key.start
-            rsize1 = key.stop
+            rsize0 = asarray(key.start)
+            rsize1 = asarray(key.stop)
             if rsize0 is None: 
                 rsize0 = 0
             if rsize1 is None: 

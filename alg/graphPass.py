@@ -59,6 +59,9 @@ class GraphPass(object):
             ttree = stack[idx][1]
 
             for cnode in ttree:
+                if cnode is None:
+                    continue
+
                 nextLevel = nextLevelFor(cnode)
                 if nextLevel:
                     if (yield +1, cnode):

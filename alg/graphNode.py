@@ -97,7 +97,7 @@ class GraphNode(object):
 
     _parents = None
     def getParents(self):
-        return [p() for p in self._parents]
+        return [p() for p in self._parents if p() is not None]
     parents = property(getParents)
 
     def onAddToParent(self, parent):

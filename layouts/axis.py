@@ -107,8 +107,8 @@ class AxisLayoutStrategy(BaseLayoutStrategy):
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def cellWeightsMinSizes(self, cells, default=zeros((2,), 'f')):
-        minSizes = empty((len(cells), 2), 'f')
-        weights = empty((len(cells), 2), 'f')
+        minSizes = zeros((len(cells), 2), 'f')
+        weights = zeros((len(cells), 2), 'f')
 
         # grab cell info into minSize and weights arrays
         idxWalk = ndindex(weights.shape[:-1])

@@ -102,10 +102,10 @@ class FreetypeLoader(object):
 
     def _verticesFrom(self, metrics):
         x0 = (metrics.horiBearingX)
-        y0 = (metrics.horiBearingY - metrics.height - 1)
+        y0 = (metrics.horiBearingY - metrics.height)
 
         x1 = (metrics.horiBearingX + metrics.width + 1)
-        y1 = (metrics.horiBearingY)
+        y1 = (metrics.horiBearingY + 1)
 
         return [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
 

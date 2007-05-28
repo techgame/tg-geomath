@@ -15,15 +15,28 @@ import numpy
 from numpy import zeros, empty, recarray
 
 from TG.geomath.data.color import Color, DataHostObject
+from .wrap import wrapModeMap
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class TextBlock(object):
+    def __init__(self, text, sorts, slice):
+        self.text = text
+        self.sorts = sorts
+        self.slice = slice
+
+    def __repr__(self):
+        return '<%s [%04s:%04s]>' % (self.__class__.__name__, self.slice.start, self.slice.stop)
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class TypeSetter(DataHostObject):
     offset = 0
     face = None
     color = Color.property('#ff')
+    TextBlock = TextBlock
 
     def __init__(self, **kw):
         if kw: self.attr(kw.items())
@@ -76,4 +89,22 @@ class TypeSetter(DataHostObject):
         else: result = rope[0]
         return result
     sorts = property(getSorts)
+
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+    wrapper = None
+    _wrapModes = wrapModeMap
+    def wrap(self, size=None, wrapper=None):
+        text = self.text
+        if not text: return []
+
+        if not hasattr(wrapper, 'wrapSlices'):
+            if isinstance(wrapper, basestring):
+                wrapper = wrapper.lower()
+            wrapper = self._wrapModes[wrapper]()
+
+        sorts = self.sorts
+        wrapSlices = wrapper.wrapSlices(size, text, sorts['offset'])
+        return (self.TextBlock(text[sl], sorts[sl], sl) for sl in wrapSlices)
 

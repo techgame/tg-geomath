@@ -13,7 +13,7 @@
 import numpy
 from numpy import ndarray, multiply, asarray
 
-from .vector import Vector, _VectorIndexSyntaxBase, VectorItemProperty
+from .vector import Vector, _VectorIndexSyntaxBase, VectorItemProperty, DataHostObject
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Constants

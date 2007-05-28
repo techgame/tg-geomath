@@ -13,7 +13,7 @@
 import numpy
 from numpy import ndarray as _ndarray, array as _array
 
-from .dataDescriptors import dataProperty
+from .dataDescriptors import dataProperty, DataHostObject
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 

@@ -10,7 +10,7 @@
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-from TG.metaObserving import MetaObservableType
+from ..data import DataHostObject
 
 from ..data.box import Box
 from ..data.vector import Vector
@@ -19,7 +19,7 @@ from ..data.vector import Vector
 #~ Layouts
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class LayoutCell(object):
+class LayoutCell(DataHostObject):
     """Abstract Base Class for a cell.
 
     Optional attributes:
@@ -27,16 +27,12 @@ class LayoutCell(object):
         minSize = Vector.property([0,0], 'f')
     """
 
-    __metaclass__ = MetaObservableType
-
     def layoutInBox(self, lbox):
         """Called with a Box instance or None when the cell has been placed"""
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class BaseLayoutStrategy(object):
-    __metaclass__ = MetaObservableType
-
+class BaseLayoutStrategy(DataHostObject):
     outside = Vector.property([0,0], 'f')
     inside = Vector.property([0,0], 'f')
 

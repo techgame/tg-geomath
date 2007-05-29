@@ -24,27 +24,36 @@ from TG.geomath.typeset.typeface import FTTypeface
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 def main():
-    mosaicSize = (1<<10, 1<<10)
+    #mosaicSize = (1<<11, 1<<11)
+    #mosaicSize = (1<<10, 1<<10)
+    mosaicSize = (1<<11, 1<<8)
 
     fnlist = [
-        #'/Library/Fonts/Courier New',
-        #'/Library/Fonts/Andale Mono',
+        '/System/Library/Fonts/OsakaMono.dfont',
+        '/Library/Fonts/BiauKai.dfont',
+        '/Library/Fonts/Apple LiSung Light.dfont',
+        '/Library/Fonts/Courier New',
+        '/Library/Fonts/Andale Mono',
         '/Library/Fonts/Cracked',
-        #'/Library/Fonts/Arial',
-        #'/Library/Fonts/Papyrus.dfont',
-        #'/Library/Fonts/Handwriting - Dakota',
+        '/Library/Fonts/Baskerville.dfont',
+        '/Library/Fonts/Arial',
+        '/Library/Fonts/Papyrus.dfont',
+        '/Library/Fonts/Handwriting - Dakota',
         #'/Library/Fonts/Zapfino.dfont',
         ]
     fn = fnlist[0]
 
     charSizes = [
-        10, 12, 14, 16, 18, 24, 32, 
-        36, 48, 60, 64, 72, 80, 84, 96
+        #10, 12, 14, 16, 18, 24, 32, 
+        32
+        #36, 48, 60, 64, 
+        #72, 80, 84, 96
         ]
 
     arena = MosaicPageArena(mosaicSize)
 
-    text = string.printable
+    verticalText = u'\u6a19\u6e96\u8a9e'
+    horizontalText = string.printable
 
     print
     print "compiling arena for:"
@@ -55,6 +64,10 @@ def main():
     for cs in charSizes:
         for fn in fnlist:
             face = FTTypeface(fn, cs)
+            if 'vertical' in face._ftFace.flags:
+                text = verticalText
+            else:
+                text = horizontalText
 
             sorts = face.translate(text)
             pageEntries = arena[sorts]

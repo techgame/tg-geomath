@@ -34,8 +34,8 @@ class MosaicPage(object):
         self._allocBlock(None)
 
     def _iterAllocBlocks(self, (w, h)):
-        pos = numpy.array([0, 0], 'H')
-        size = numpy.array([w, 0], 'H')
+        pos = numpy.array([1, 0], 'H')
+        size = numpy.array([w-1, 0], 'H')
         th = h
 
         h = yield

@@ -5,6 +5,7 @@
 syntax: glob 
 
 syntax: regexp 
+^typeset/test/.*\.png
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Generally useful ignore configurations

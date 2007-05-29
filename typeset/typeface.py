@@ -56,7 +56,7 @@ dtype_sorts = numpy.dtype([
     ('glyphidx', 'L'), # offset: 0, +1*4
     ('typeface', 'object'), # offset: 4, +1*4
     ('hidx', 'L'), # offset: 8, +1*4
-    #('_', 'L'), # offset: 12, +1*4
+    ('size', 'h', (2,)), # offset: 12, +2*2
 
     ('advance', 'h', (2,)), # offset: 16, +2*2
     ('offset', 'l', (2,)), # offset: 20, +2*4
@@ -77,7 +77,7 @@ class Typeface(dict):
 
     def translate(self, text):
         idxmap = map(self.__getitem__, unicode(text))
-        return self.sorts[idxmap]
+        return self.getSorts(idxmap)
 
     def __missing__(self, ordOrChar):
         if isinstance(ordOrChar, int):
@@ -89,6 +89,12 @@ class Typeface(dict):
         return entry
 
     def _loadChar(self, ordChar):
+        raise NotImplementedError('Subclass Responsibility: %r' % (self,))
+
+    def loadAll(self):
+        raise NotImplementedError('Subclass Responsibility: %r' % (self,))
+
+    def bitmapFor(self, sort):
         raise NotImplementedError('Subclass Responsibility: %r' % (self,))
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -103,8 +109,10 @@ class Typeface(dict):
     def _nextEntry(self):
         return self._arrPool.next()
 
-    def getSorts(self):
-        return self._arrPool.pool
+    def getSorts(self, idx=None):
+        if idx is None:
+            idx = slice(None, self._arrPool.idx)
+        return self._arrPool.pool[idx]
     sorts = property(getSorts)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -134,6 +142,9 @@ class FTTypeface(Typeface):
     def _loadChar(self, ordChar):
         char = unichr(ordChar)
         ftGlyphSlot = self._ftFace.loadGlyph(char)
+        return self._loadGlyph(ftGlyphSlot)
+
+    def _loadGlyph(self, ftGlyphSlot):
         idx, entry = self._nextEntry()
 
         entry['typeface'] = self
@@ -142,6 +153,22 @@ class FTTypeface(Typeface):
         entry['advance'][:] = ftGlyphSlot.padvance
         entry['offset'][:] = 0
         entry['color'][:] = 0
-        entry['quad'][:] = (ftGlyphSlot.pbox * self._boxToQuad).sum(1)
+        pbox = ftGlyphSlot.pbox
+        entry['quad'][:] = (pbox * self._boxToQuad).sum(1)
+        entry['size'][:] = (pbox[1] - pbox[0])
         return idx
+
+    def loadAll(self):
+        ftFace = self._ftFace
+        for cc, gi in ftFace.iterAllChars(True):
+            ftGlyphSlot = ftFace.loadGlyph(gi)
+            idx = self._loadGlyph(ftGlyphSlot)
+            self[ord(cc)] = idx
+
+    def bitmapFor(self, sort):
+        ftFace = self._ftFace
+        gi = int(sort['glyphidx'])
+        ftGlyphSlot = ftFace.loadGlyph(gi)
+        ftGlyphSlot.render()
+        return ftGlyphSlot.getBitmapArray()
 

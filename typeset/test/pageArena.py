@@ -24,12 +24,17 @@ from TG.geomath.typeset.typeface import FTTypeface
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 def main():
+    #mosaicSize = (1<<13, 1<<11)
     #mosaicSize = (1<<11, 1<<11)
-    #mosaicSize = (1<<10, 1<<10)
-    mosaicSize = (1<<11, 1<<8)
+    mosaicSize = (1<<10, 1<<10)
+    #mosaicSize = (1<<11, 1<<8)
+    #mosaicSize = (1<<9, 1<<10)
+    #mosaicSize = (1<<10, 1<<9)
+    #mosaicSize = (1<<10, 1<<7)
+    #mosaicSize = (1<<10, 1<<6)
 
     fnlist = [
-        '/System/Library/Fonts/OsakaMono.dfont',
+        #'/System/Library/Fonts/OsakaMono.dfont',
         '/Library/Fonts/BiauKai.dfont',
         '/Library/Fonts/Apple LiSung Light.dfont',
         '/Library/Fonts/Courier New',
@@ -44,10 +49,14 @@ def main():
     fn = fnlist[0]
 
     charSizes = [
-        #10, 12, 14, 16, 18, 24, 32, 
-        32
-        #36, 48, 60, 64, 
-        #72, 80, 84, 96
+        10, 12, 14, 16, 
+        18, 24, 32, 
+        #36, 48, 
+        #60, 64, 
+        #72, 80,
+        #84, 96
+        #128
+        #192
         ]
 
     arena = MosaicPageArena(mosaicSize)
@@ -72,20 +81,15 @@ def main():
             sorts = face.translate(text)
             pageEntries = arena[sorts]
 
-    print 'arena entries:'
-    print len(arena._entries)
     print
+    print 'arena entries:', len(arena._entries)
     for i, page in enumerate(arena.pages):
-        page.asImage(None, 'page-%d.png' % (i,))
+        pageName = 'page-%d.png' % (i,)
+        page.asImage(None, pageName)
+
         print
-
-        total = page.page.nbytes
-        waste = numpy.sum(page.waste)/float(total)
-        density = 1. - waste
-
-        print 'page:', i, 'density:', density
-        for k, v in page.blocks.items():
-            print '  %3d: %r' % (k, [(p[1], s[0]) for p,s in v])
+        print 'Page:', i, 'size:', page.size, page.allocInfo
+        page.printBlockInfo()
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

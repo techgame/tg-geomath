@@ -78,6 +78,8 @@ class Typeface(dict):
     def translate(self, text):
         idxmap = map(self.__getitem__, unicode(text))
         return self.getSorts(idxmap)
+    def kern(self, sorts, out):
+        return None 
 
     def __missing__(self, ordOrChar):
         if isinstance(ordOrChar, int):
@@ -135,6 +137,12 @@ class FTTypeface(Typeface):
 
         self._ftFace = ftFace
         self._createPool(ftFace.numGlyphs)
+        self._kernSorts = 'kerning' in ftFace.flags
+
+    def kern(self, sorts, offset=None):
+        if not self._kernSorts:
+            return offset
+        return self._ftFace.kernArray(sorts['glyphidx'], offset)
 
     def _getFaceName(self):
         return self._ftFace._getInfoName()

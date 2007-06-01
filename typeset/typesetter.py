@@ -62,11 +62,13 @@ class TypeSetter(DataHostObject):
     def add(self, text, **kw):
         if kw: self.attr(kw.items())
 
-        sorts = self.face.translate(text)
+        face = self.face
+        sorts = face.translate(text)
 
         advance = sorts['advance']
         offset = sorts['offset']
         offset[0] = self.offset
+        face.kern(sorts, offset)
         numpy.add(offset[:-1], advance[:-1], offset[1:])
         self.offset = offset[-1] + advance[-1]
 

@@ -28,30 +28,36 @@ class MosaicPage(object):
         w, h = pageSize
         self.page = numpy.zeros((h, w), 'B')
         
-        self.waste = []
         self.blocks = {}
-        self._allocBlock = self._iterAllocBlocks(pageSize).send
+        self._blockBins = [(e - self.deltaSize) for e in self._blockBins if e < w]
+
+        # initialize the generator
+        self._allocBlock = self._iterAllocBlocks().send
         self._allocBlock(None)
 
-    def _iterAllocBlocks(self, (w, h)):
-        pos = numpy.array([1, 0], 'H')
-        size = numpy.array([w-1, 0], 'H')
-        th = h
+    def getSize(self):
+        h, w = self.page.shape
+        return (w, h)
+    size = property(getSize)
+
+    deltaSize = 2
+    def _iterAllocBlocks(self):
+        deltaSize = self.deltaSize
+
+        cw = self.size[0]
+        pos = numpy.array([1, 0], 'h')
+        size = numpy.array([cw, 0], 'h')
+        self.allocInfo = pos, size
 
         h = yield
-        while 1:
-            th -= h
-            if th < 0: break
-
-            size[1] = h
+        pos[1] = deltaSize // 2
+        size[1] = h
+        while pos[1]+size[1] < self.page.shape[0]:
             h = yield (pos.copy(), size.copy())
-            pos[1] += size[1]
+            pos[1] += size[1] + deltaSize # old size + deltaSize
+            size[1] = h
 
-    #_blockBins = [8, 16, 24, 32, 48, 64, 96, 128, 256, 512, 1024, 2048]
-    #_blockBins = [8, 16, 24, 32, 48, 64, 80, 96, 128, 192, 256, 384, 512, 1024, 2048]
-    #_blockBins = sorted([e for sw in range(3, 11) for e in [1<<sw] if e < 2048])
-    #_blockBins = sorted([e for sw in range(3, 11) for e in [1<<sw, 3<<sw] if e < 2048])
-    _blockBins = sorted([e for sw in range(3, 11) for e in [1<<sw, 3<<sw, 5<<sw] if e < 2048])
+    _blockBins = sorted([e for sw in range(10) for e in [0x8<<sw, 0xc<<sw]])
 
     def findBlock(self, size, binIdx, create=True):
         bins = self._blockBins
@@ -63,7 +69,7 @@ class MosaicPage(object):
             blocks = self.blocks.get(height)
             if blocks:
                 for idx, (bpos, bsize) in enumerate(blocks):
-                    if (bsize-1 > size).all():
+                    if (bsize > size).all():
                         return idx, blocks
 
         if not create:
@@ -82,33 +88,28 @@ class MosaicPage(object):
             return len(blocks)-1, blocks
 
     def blockFor(self, size):
-        binIdx = bisect_right(self._blockBins, size[1]+1)
+        binIdx = bisect_right(self._blockBins, size[1])
         idx, blocks = self.findBlock(size, binIdx, self._allocBlock is not None)
         if idx is None:
             return None
 
         bpos, bsize = blocks[idx]
         r = bpos.copy()
-        w = size[0] + 1
+        w = size[0] + self.deltaSize
         bpos[0] += w
         bsize[0] -= w
         if 3*bsize[0] < bsize[1]:
             blocks.pop(idx)
-
-        self.waste.append(w*(bsize[1] - size[1] - 1))
         return r
 
-    def newEntryFor(self, sort):
-        bmp = sort['typeface'].bitmapFor(sort)
-        if bmp is None:
-            w = h = bx = by= 0
-        else:
-            h, w = bmp.shape
-            block = self.blockFor((w, h))
-            if block is None:
-                return None
-            bx, by = block
-            self.page[by:by+h, bx:bx+w] = bmp
+    def newEntryFor(self, bmp):
+        h, w = bmp.shape
+        block = self.blockFor((w, h))
+        if block is None:
+            return None
+        bx, by = block
+        ##assert (self.page[by:by+h, bx:bx+w] == 0).all(), 'Page block is already populated'
+        self.page[by:by+h, bx:bx+w] = bmp
 
         coords = ((w,h) * self._sizeToTexCoords) + (bx, by)
         return self, coords
@@ -131,6 +132,14 @@ class MosaicPage(object):
             img.save(filename)
         return img
 
+    def printBlockInfo(self):
+        print '=========================='
+        width = self.size[0]/100.0
+        print 'height: filled % per block'
+        print '--------------------------'
+        for k, v in sorted(self.blocks.items()):
+            print '  %4d: [%s]' % (k, ', '.join('%1.0f%%' % (s[0]/width) for p,s in v))
+        print '=========================='
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -140,29 +149,54 @@ class MosaicPageArena(object):
         self.pages = []
         self.pageSize = pageSize
 
+    def __contains__(self, sort):
+        return self.pageForSort(sort, False)
     def __getitem__(self, sorts):
-        return map(self.getPageFor, sorts)
+        return map(self.pageForSort, sorts)
 
-    def getPageFor(self, sort):
+    def pageForSort(self, sort, create=True):
         sortkey = int(sort['hidx'])
         entry = self._entries.get(sortkey, None)
-        if entry is None:
-            entry = self.newEntryFor(sort)
+        if entry is None and create:
+            bmp = self.sortBitmap(sort)
+            entry = self.newEntryFor(bmp)
             self._entries[sortkey] = entry
         return entry
 
-    def newEntryFor(self, sort):
+    def sortBitmap(self, sort):
+        bmp = sort['typeface'].bitmapFor(sort)
+        return bmp
+
+    def newEntryFor(self, bmp):
+        if bmp is None:
+            return None
+
         for page in self.pages:
-            entry = page.newEntryFor(sort)
+            entry = page.newEntryFor(bmp)
             if entry is not None:
                 return entry
-        else:
-            page = self.newPage()
-            entry = page.newEntryFor(sort)
-            return entry
 
-    def newPage(self):
-        r = MosaicPage(self.pageSize)
+        page = self.newPageForBitmap(bmp)
+        entry = page.newEntryFor(bmp)
+        if entry is None:
+            raise RuntimeError("Stupid darn")
+        return entry
+
+    def newPageForBitmap(self, bmp):
+        bh, bw = bmp.shape
+
+        pw, ph = self.pageSize
+        if bw >= pw-2 or bh >= ph-2:
+            raise ValueError("Bitmap shape is bigger than mosaic page size")
+
+        page = self.newPage((pw, ph))
+        return page
+
+    def newPage(self, pageSize=None):
+        if pageSize is None:
+            pageSize = self.pageSize
+
+        r = MosaicPage(pageSize)
         self.pages.append(r)
         return r
 

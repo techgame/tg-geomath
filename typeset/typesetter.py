@@ -97,19 +97,24 @@ class TypeSetter(DataHostObject):
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-
-    wrapper = None
+    wrapMode = None
     _wrapModes = wrapModeMap
-    def wrap(self, size=None, wrapper=None):
+    def wrapSlices(self, size=None, wrapMode=None):
         text = self.text
         if not text: return []
 
-        if not hasattr(wrapper, 'wrapSlices'):
-            if isinstance(wrapper, basestring):
-                wrapper = wrapper.lower()
-            wrapper = self._wrapModes[wrapper]()
+        if wrapMode is None:
+            wrapMode = self.wrapMode
+
+        if not hasattr(wrapMode, 'wrapSlices'):
+            if isinstance(wrapMode, basestring):
+                wrapMode = wrapMode.lower()
+            wrapMode = self._wrapModes[wrapMode]()
 
         sorts = self.sorts
-        wrapSlices = wrapper.wrapSlices(size, text, sorts['offset'])
+        wrapSlices = wrapMode.wrapSlices(size, text, sorts['offset'])
+        return wrapSlices
+    def wrap(self, size=None, wrapMode=None):
+        wrapSlices = self.wrapSlices(size, wrapMode)
         return (self.TextBlock(text[sl], sorts[sl], sl) for sl in wrapSlices)
 

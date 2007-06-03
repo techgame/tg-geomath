@@ -56,6 +56,8 @@ dtype_sorts = numpy.dtype([
     ('glyphidx', 'L'),
     ('typeface', 'object'),
     ('hidx', 'L'),
+    ('lineSize', 'h', (2,)),
+    ('ascenders', 'h', (2,1)),
 
     ('advance', 'h', (1, 2)),
     ('offset', 'l', (1, 2)),
@@ -124,6 +126,8 @@ class FTTypeface(Typeface):
             [[0,1],[1,0]],
             [[0,0],[1,1]],
             [[1,0],[0,1]]], 'l')
+    lineSize = None
+    ascenders = None
 
     def __init__(self, ftFace, size=None, dpi=72):
         if isinstance(ftFace, basestring):
@@ -133,6 +137,13 @@ class FTTypeface(Typeface):
             ftFace.setCharSize(size, dpi)
 
         self._ftFace = ftFace
+
+        lh = ftFace.lineHeight >> 6
+        if ftFace.isLayoutVertical():
+            self.lineSize = numpy.array([lh,0], 'h')
+        else: self.lineSize = numpy.array([0,lh], 'h')
+        self.ascenders = numpy.array([[ftFace.lineAscender >> 6], [ftFace.lineDescender >> 6]], 'h')
+
         self._createPool(ftFace.numGlyphs)
 
     def kern(self, sorts, advance=None):
@@ -147,19 +158,28 @@ class FTTypeface(Typeface):
     def _loadChar(self, ordChar):
         char = unichr(ordChar)
         ftGlyphSlot = self._ftFace.loadGlyph(char)
-        return self._loadGlyph(ftGlyphSlot)
+        return self._loadGlyph(ftGlyphSlot, char)
 
-    def _loadGlyph(self, ftGlyphSlot):
+    def _loadGlyph(self, ftGlyphSlot, char):
         idx, entry = self._nextEntry()
 
+        gidx = ftGlyphSlot.index
+        entry['glyphidx'] = gidx
         entry['typeface'] = self
-        entry['hidx'] = hash((id(self), ftGlyphSlot.index))
-        entry['glyphidx'] = ftGlyphSlot.index
-        entry['advance'][:] = ftGlyphSlot.padvance
+        entry['hidx'] = hash((id(self), gidx))
+        entry['lineSize'][:] = self.lineSize
+        entry['ascenders'][:] = self.ascenders
+
+        if gidx or not char.isspace():
+            entry['advance'][:] = (1,-1)*ftGlyphSlot.padvance
+            pbox = ftGlyphSlot.pbox
+            entry['quad'][:] = (pbox * self._boxToQuad).sum(1)
+        else: 
+            entry['advance'][:] = 0
+            entry['quad'][:] = 0
+
         entry['offset'][:] = 0
         entry['color'][:] = 0
-        pbox = ftGlyphSlot.pbox
-        entry['quad'][:] = (pbox * self._boxToQuad).sum(1)
         return idx
 
     def loadAll(self):
@@ -172,6 +192,10 @@ class FTTypeface(Typeface):
     def bitmapFor(self, sort):
         ftFace = self._ftFace
         gi = int(sort['glyphidx'])
+        if not gi:
+            if not sort['advance'].sum():
+                return None
+
         ftGlyphSlot = ftFace.loadGlyph(gi)
         ftGlyphSlot.render()
         return ftGlyphSlot.getBitmapArray()

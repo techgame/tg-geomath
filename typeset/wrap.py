@@ -26,7 +26,7 @@ class BasicTextWrapper(object):
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class RETextWrapper(BasicTextWrapper):
-    re_wrapPoints = re.compile('$|\n|\r')
+    re_wrapPoints = re.compile('$', re.MULTILINE)
 
     def wrapPoints(self, size, text, offset):
         iterMatches = self.re_wrapPoints.finditer(text)
@@ -39,7 +39,7 @@ class RETextWrapper(BasicTextWrapper):
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class LineTextWrapper(RETextWrapper):
-    re_wrapPoints = re.compile('$|\n|\r')
+    re_wrapPoints = re.compile('$', re.MULTILINE)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

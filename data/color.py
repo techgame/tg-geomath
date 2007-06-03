@@ -118,6 +118,12 @@ class ColorVector(Vector):
 
     a = VectorItemProperty(numpy.s_[..., 3:4])
 
+    def __setvalue__(self, value):
+        if isinstance(value, basestring):
+            self.setHex(value) # hex will translate color names too
+        else:
+            self[:] = value
+
     def getColorNameSyntax(self):
         return ColorNameSyntax(self)
     def setColorName(self, colorName):

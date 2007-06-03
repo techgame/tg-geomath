@@ -61,7 +61,10 @@ class DataProperty(object):
             return 
 
         item = self.__get__(obInst, None)
-        item[:] = value
+        itemSetValue = getattr(item, '__setvalue__', None)
+        if itemSetValue is not None:
+            itemSetValue(value)
+        else: item[:] = value
 
     def _modified_(self, obInst):
         pass

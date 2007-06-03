@@ -53,17 +53,14 @@ class ArrayEntryPool(object):
 
 
 dtype_sorts = numpy.dtype([
-    ('glyphidx', 'L'), # offset: 0, +1*4
-    ('typeface', 'object'), # offset: 4, +1*4
-    ('hidx', 'L'), # offset: 8, +1*4
-    ('size', 'h', (2,)), # offset: 12, +2*2
+    ('glyphidx', 'L'),
+    ('typeface', 'object'),
+    ('hidx', 'L'),
 
-    ('advance', 'h', (2,)), # offset: 16, +2*2
-    ('offset', 'l', (2,)), # offset: 20, +2*4
-    ('color', 'B', (4,)), # offset: 28, +4*1
-    ('quad', 'h', (4,2)), # offset: 32, +4*2*2
-
-    # offset: 48, +0
+    ('advance', 'h', (1, 2)),
+    ('offset', 'l', (1, 2)),
+    ('color', 'B', (1, 4)),
+    ('quad', 'l', (4, 2)),
     ])
 
 class Typeface(dict):
@@ -137,12 +134,12 @@ class FTTypeface(Typeface):
 
         self._ftFace = ftFace
         self._createPool(ftFace.numGlyphs)
-        self._kernSorts = 'kerning' in ftFace.flags
 
-    def kern(self, sorts, offset=None):
-        if not self._kernSorts:
-            return offset
-        return self._ftFace.kernArray(sorts['glyphidx'], offset)
+    def kern(self, sorts, advance=None):
+        if advance is None:
+            advance = numpy.zeros((len(sorts), 1, 2), 'l')
+
+        return self._ftFace.kernArray(sorts['glyphidx'], advance)
 
     def _getFaceName(self):
         return self._ftFace._getInfoName()
@@ -163,7 +160,6 @@ class FTTypeface(Typeface):
         entry['color'][:] = 0
         pbox = ftGlyphSlot.pbox
         entry['quad'][:] = (pbox * self._boxToQuad).sum(1)
-        entry['size'][:] = (pbox[1] - pbox[0])
         return idx
 
     def loadAll(self):

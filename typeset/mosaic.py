@@ -18,15 +18,11 @@ import numpy
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class MosaicPage(object):
-    _sizeToTexCoords = numpy.array([
-            [0,1],
-            [1,1],
-            [1,0],
-            [0,0]], 'l')
+    _sizeToTexCoords = numpy.array([[0.,1.], [1.,1.], [1.,0.], [0.,0.]], 'f')
 
     def __init__(self, pageSize):
         w, h = pageSize
-        self.page = numpy.zeros((h, w), 'B')
+        self.data = numpy.zeros((h, w), 'B')
         
         self.blocks = {}
         self._blockBins = [(e - self.deltaSize) for e in self._blockBins if e < w]
@@ -36,7 +32,7 @@ class MosaicPage(object):
         self._allocBlock(None)
 
     def getSize(self):
-        h, w = self.page.shape
+        h, w = self.data.shape
         return (w, h)
     size = property(getSize)
 
@@ -52,7 +48,7 @@ class MosaicPage(object):
         h = yield
         pos[1] = deltaSize // 2
         size[1] = h
-        while pos[1]+size[1] < self.page.shape[0]:
+        while pos[1]+size[1] < self.data.shape[0]:
             h = yield (pos.copy(), size.copy())
             pos[1] += size[1] + deltaSize # old size + deltaSize
             size[1] = h
@@ -108,15 +104,14 @@ class MosaicPage(object):
         if block is None:
             return None
         bx, by = block
-        ##assert (self.page[by:by+h, bx:bx+w] == 0).all(), 'Page block is already populated'
-        self.page[by:by+h, bx:bx+w] = bmp
+        self.data[by:by+h, bx:bx+w] = bmp
 
         coords = ((w,h) * self._sizeToTexCoords) + (bx, by)
         return self, coords
 
     def dataAt(self, coords):
         ((x0,y0), (x1, y1)) = coords[[3, 1]]
-        return self.page[y0:y1, x0:x1]
+        return self.data[y0:y1, x0:x1]
 
     def imageAt(self, coords, filename=None):
         data = self.dataAt(coords)
@@ -125,7 +120,7 @@ class MosaicPage(object):
     def asImage(self, data=None, filename=None):
         import PIL.Image
         if data is None:
-            data = self.page
+            data = self.data
 
         img = PIL.Image.fromstring('L', data.shape[::-1], data.ravel())
         if filename: 
@@ -153,6 +148,19 @@ class MosaicPageArena(object):
         return self.pageForSort(sort, False)
     def __getitem__(self, sorts):
         return map(self.pageForSort, sorts)
+
+    def texCoords(self, sorts, texMesh):
+        pageForSort = self.pageForSort
+        p0 = None
+        for i in xrange(len(sorts)):
+            e = pageForSort(sorts[i])
+            if e is None: continue
+
+            if p0 is None: p0 = e[0]
+            else: assert e[0] is p0
+
+            texMesh[i] = e[1]
+        return p0
 
     def pageForSort(self, sort, create=True):
         sortkey = int(sort['hidx'])

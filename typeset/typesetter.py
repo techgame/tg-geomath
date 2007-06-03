@@ -35,6 +35,7 @@ class TextBlock(object):
 class TypeSetter(DataHostObject):
     offset = 0
     face = None
+    kern = True
     color = Color.property('#ff')
     TextBlock = TextBlock
 
@@ -67,8 +68,10 @@ class TypeSetter(DataHostObject):
 
         advance = sorts['advance']
         offset = sorts['offset']
-        offset[0] = self.offset
-        face.kern(sorts, offset)
+        if self.kern:
+            face.kern(sorts, advance)
+
+        offset[0] += self.offset
         numpy.add(offset[:-1], advance[:-1], offset[1:])
         self.offset = offset[-1] + advance[-1]
 

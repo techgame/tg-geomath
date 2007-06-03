@@ -29,8 +29,7 @@ def main():
     bPrintLines = False
     bTimeWrapping = True
 
-    #fn = '/Library/Fonts/Arial'
-    fn = '/Library/Fonts/Courier New'
+    fn = '/Library/Fonts/Arial'
     face = FTTypeface(fn, 48)
     wrapSize = (1280, 960)
 

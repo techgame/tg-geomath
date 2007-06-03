@@ -257,7 +257,7 @@ class Box(object):
         return self
 
     def copy(self, dim=None):
-        return self.fromArray(self._data[...,:None].copy())
+        return self.fromArray(self._data[...,:dim].copy())
 
     def astype(self, t):
         return self.fromArray(self._data.astype(t))

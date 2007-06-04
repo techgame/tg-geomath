@@ -45,10 +45,7 @@ class TypeSetter(DataHostObject):
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     softspace = False
-    def write(self, text):
-        self.add(text)
-
-    def add(self, text, **kw):
+    def write(self, text, **kw):
         if kw: self.attr(kw.items())
 
         face = self.face
@@ -67,6 +64,7 @@ class TypeSetter(DataHostObject):
 
         self.text += text
         self._rope.append(sorts)
+    add = write
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

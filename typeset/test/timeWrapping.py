@@ -25,6 +25,17 @@ Mbps = 1./(1<<17)
 #~ Main 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+class TextBlock(object):
+    def __init__(self, text, sorts, slice):
+        self.text = text
+        self.sorts = sorts
+        self.slice = slice
+
+    def __repr__(self):
+        return '<%s [%04s:%04s]>' % (self.__class__.__name__, self.slice.start, self.slice.stop)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 def main():
     bPrintLines = False
     bTimeWrapping = True
@@ -45,10 +56,11 @@ def main():
     if bPrintLines:
         print
         print 'None wrapper:'
-        for w in ts.wrap(wrapSize, wrapper):
-            off = w.sorts['offset']
-            off = (off[-1] - off[0] + w.sorts[-1]['advance']).sum()
-            print '%25r %5s: |%-.50s|' % (w, off, w.text.encode('unicode-escape'))
+        for ws in ts.wrapSlices(wrapSize, wrapper):
+            wsorts = ts.sorts[ws]; wtext = ts.text[ws]
+            off = wsorts['offset']
+            off = (off[-1] - off[0] + wsorts[-1]['advance']).sum()
+            print '%25r %5s: |%-.50s|' % (w, off, wtext.encode('unicode-escape'))
 
     if bTimeWrapping:
         print
@@ -57,7 +69,7 @@ def main():
             ts = TypeSetter(face = face)
             t0 = time.time()
             ts.add(text)
-            lines = list(ts.wrap(wrapSize, wrapper))
+            lines = list(ts.wrapSlices(wrapSize, wrapper))
             t1 = time.time()
             print '%1.6fs, %.3f Mbps, %d glyphs, lines: %d' % ((t1-t0), len(text)*Mbps/(t1-t0), len(text), len(lines))
         print
@@ -66,10 +78,11 @@ def main():
     if bPrintLines:
         print
         print 'Line wrapper:'
-        for w in ts.wrap(wrapSize, wrapper):
-            off = w.sorts['offset']
-            off = (off[-1] - off[0] + w.sorts[-1]['advance']).sum()
-            print '%25r %5s: |%-.50s|' % (w, off, w.text.encode('unicode-escape'))
+        for ws in ts.wrapSlices(wrapSize, wrapper):
+            wsorts = ts.sorts[ws]; wtext = ts.text[ws]
+            off = wsorts['offset']
+            off = (off[-1] - off[0] + wsorts[-1]['advance']).sum()
+            print '%25r %5s: |%-.50s|' % (w, off, wtext.encode('unicode-escape'))
 
     if bTimeWrapping:
         print
@@ -78,7 +91,7 @@ def main():
             ts = TypeSetter(face = face)
             t0 = time.time()
             ts.add(text)
-            lines = list(ts.wrap(wrapSize, wrapper))
+            lines = list(ts.wrapSlices(wrapSize, wrapper))
             t1 = time.time()
             print '%1.6fs, %.3f Mbps, %d glyphs, lines: %d' % ((t1-t0), len(text)*Mbps/(t1-t0), len(text), len(lines))
         print
@@ -87,11 +100,12 @@ def main():
     if bPrintLines:
         print
         print 'Text wrapper:'
-        for w in ts.wrap(wrapSize, wrapper):
-            off = w.sorts['offset']
-            if len(off): off = (off[-1] - off[0] + w.sorts[-1]['advance']).sum()
+        for ws in ts.wrapSlices(wrapSize, wrapper):
+            wsorts = ts.sorts[ws]; wtext = ts.text[ws]
+            off = wsorts['offset']
+            if len(off): off = (off[-1] - off[0] + wsorts[-1]['advance']).sum()
             else: off = 0
-            print '%25r %5s: |%-.50s|' % (w, off, w.text.encode('unicode-escape'))
+            print '%25r %5s: |%-.50s|' % (w, off, wtext.encode('unicode-escape'))
 
     if bTimeWrapping:
         print
@@ -100,7 +114,7 @@ def main():
             ts = TypeSetter(face = face)
             t0 = time.time()
             ts.add(text)
-            lines = list(ts.wrap(wrapSize, wrapper))
+            lines = list(ts.wrapSlices(wrapSize, wrapper))
             t1 = time.time()
             print '%1.6fs, %.3f Mbps, %d glyphs, lines: %d' % ((t1-t0), len(text)*Mbps/(t1-t0), len(text), len(lines))
         print

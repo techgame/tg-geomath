@@ -21,23 +21,11 @@ from .wrap import wrapModeMap
 #~ Definitions 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class TextBlock(object):
-    def __init__(self, text, sorts, slice):
-        self.text = text
-        self.sorts = sorts
-        self.slice = slice
-
-    def __repr__(self):
-        return '<%s [%04s:%04s]>' % (self.__class__.__name__, self.slice.start, self.slice.stop)
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 class TypeSetter(DataHostObject):
     offset = 0
     face = None
     kern = True
     color = Color.property('#ff')
-    TextBlock = TextBlock
 
     def __init__(self, **kw):
         if kw: self.attr(kw.items())
@@ -99,7 +87,7 @@ class TypeSetter(DataHostObject):
 
     wrapMode = None
     _wrapModes = wrapModeMap
-    def wrapSlices(self, size=None, wrapMode=None):
+    def wrap(self, size=None, wrapMode=None):
         text = self.text
         if not text: return []
 
@@ -113,8 +101,5 @@ class TypeSetter(DataHostObject):
 
         sorts = self.sorts
         wrapSlices = wrapMode.wrapSlices(size, text, sorts['offset'])
-        return wrapSlices
-    def wrap(self, size=None, wrapMode=None):
-        wrapSlices = self.wrapSlices(size, wrapMode)
-        return (self.TextBlock(text[sl], sorts[sl], sl) for sl in wrapSlices)
+        return text, sorts, wrapSlices
 

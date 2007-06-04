@@ -66,7 +66,7 @@ dtype_sorts = numpy.dtype([
     ])
 
 class Typeface(dict):
-    _vecTranslate = None
+    fixedAdv = False
 
     def __repr__(self):
         return '<%s %r>' % (self.__class__.__name__, self._getFaceName())
@@ -126,10 +126,13 @@ class FTTypeface(Typeface):
             [[0,1],[1,0]],
             [[0,0],[1,1]],
             [[1,0],[0,1]]], 'l')
+
+    isKerned = False
     lineSize = None
     ascenders = None
+    fixedAdv = None
 
-    def __init__(self, ftFace, size=None, dpi=72):
+    def __init__(self, ftFace, size=None, dpi=72, fixedAdv=None):
         if isinstance(ftFace, basestring):
             ftFace = FreetypeFace(ftFace)
 
@@ -137,16 +140,25 @@ class FTTypeface(Typeface):
             ftFace.setCharSize(size, dpi)
 
         self._ftFace = ftFace
+        self._createPool(ftFace.numGlyphs)
 
         lh = ftFace.lineHeight >> 6
         if ftFace.isLayoutVertical():
             self.lineSize = numpy.array([lh,0], 'h')
-        else: self.lineSize = numpy.array([0,lh], 'h')
+        else: 
+            self.lineSize = numpy.array([0,lh], 'h')
+
         self.ascenders = numpy.array([[ftFace.lineAscender >> 6], [ftFace.lineDescender >> 6]], 'h')
 
-        self._createPool(ftFace.numGlyphs)
+        self.isKerned = ftFace.hasFlag('kerning')
+
+        if fixedAdv is not None:
+            self.fixedAdv = numpy.array(fixedAdv, 'h')
 
     def kern(self, sorts, advance=None):
+        if not self.isKerned:
+            return advance
+
         if advance is None:
             advance = numpy.zeros((len(sorts), 1, 2), 'l')
 
@@ -170,8 +182,12 @@ class FTTypeface(Typeface):
         entry['lineSize'][:] = self.lineSize
         entry['ascenders'][:] = self.ascenders
 
-        if gidx or not char.isspace():
-            entry['advance'][:] = (1,-1)*ftGlyphSlot.padvance
+        if gidx and char not in ('\n\r\t\v'):
+            adv = self.fixedAdv
+            if adv is None:
+                adv = (1,-1)*ftGlyphSlot.padvance
+            entry['advance'][:] = adv
+
             pbox = ftGlyphSlot.pbox
             entry['quad'][:] = (pbox * self._boxToQuad).sum(1)
         else: 
@@ -197,6 +213,5 @@ class FTTypeface(Typeface):
                 return None
 
         ftGlyphSlot = ftFace.loadGlyph(gi)
-        ftGlyphSlot.render()
-        return ftGlyphSlot.getBitmapArray()
+        return ftGlyphSlot.render()
 

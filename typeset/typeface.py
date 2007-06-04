@@ -11,6 +11,8 @@
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+import string 
+
 import numpy
 from numpy import resize, array, empty, zeros
 
@@ -66,8 +68,6 @@ dtype_sorts = numpy.dtype([
     ])
 
 class Typeface(dict):
-    fixedAdv = False
-
     def __repr__(self):
         return '<%s %r>' % (self.__class__.__name__, self._getFaceName())
 
@@ -114,6 +114,10 @@ class Typeface(dict):
         if idx is None:
             idx = slice(None, self._arrPool.idx)
         return self._arrPool.pool[idx]
+    def setSorts(self, key, value, idx=None):
+        if idx is None:
+            idx = slice(None, self._arrPool.idx)
+        self._arrPool.pool[idx][key] = value
     sorts = property(getSorts)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -130,9 +134,8 @@ class FTTypeface(Typeface):
     isKerned = False
     lineSize = None
     ascenders = None
-    fixedAdv = None
 
-    def __init__(self, ftFace, size=None, dpi=72, fixedAdv=None):
+    def __init__(self, ftFace, size=None, dpi=72):
         if isinstance(ftFace, basestring):
             ftFace = FreetypeFace(ftFace)
 
@@ -151,9 +154,10 @@ class FTTypeface(Typeface):
         self.ascenders = numpy.array([[ftFace.lineAscender >> 6], [ftFace.lineDescender >> 6]], 'h')
 
         self.isKerned = ftFace.hasFlag('kerning')
+        self._initFace()
 
-        if fixedAdv is not None:
-            self.fixedAdv = numpy.array(fixedAdv, 'h')
+    def _initFace(self):
+        pass
 
     def kern(self, sorts, advance=None):
         if not self.isKerned:
@@ -182,21 +186,21 @@ class FTTypeface(Typeface):
         entry['lineSize'][:] = self.lineSize
         entry['ascenders'][:] = self.ascenders
 
-        if gidx and char not in ('\n\r\t\v'):
-            adv = self.fixedAdv
-            if adv is None:
-                adv = (1,-1)*ftGlyphSlot.padvance
-            entry['advance'][:] = adv
-
-            pbox = ftGlyphSlot.pbox
-            entry['quad'][:] = (pbox * self._boxToQuad).sum(1)
-        else: 
-            entry['advance'][:] = 0
-            entry['quad'][:] = 0
-
+        adv, quad = self._geomForGlyph(gidx, ftGlyphSlot, char)
+        entry['advance'][:] = adv
+        entry['quad'][:] = quad
         entry['offset'][:] = 0
         entry['color'][:] = 0
         return idx
+
+    def _geomForGlyph(self, gidx, ftGlyphSlot, char):
+        if gidx and char not in ('\n\r\t\v'):
+            adv = (1,-1)*ftGlyphSlot.padvance
+
+            pbox = ftGlyphSlot.pbox
+            quad = (pbox * self._boxToQuad).sum(1)
+            return adv, quad
+        else: return 0, 0
 
     def loadAll(self):
         ftFace = self._ftFace
@@ -214,4 +218,29 @@ class FTTypeface(Typeface):
 
         ftGlyphSlot = ftFace.loadGlyph(gi)
         return ftGlyphSlot.render()
+
+
+class FTFixedTypeface(FTTypeface):
+    fixedAdv = None
+    _fixedWidthChars = string.letters
+
+    def _geomForGlyph(self, gidx, ftGlyphSlot, char):
+        if gidx and char not in ('\n\r\t\v'):
+            adv = self.fixedAdv
+            if adv is None:
+                adv = (1,-1)*ftGlyphSlot.padvance
+
+            pbox = ftGlyphSlot.pbox
+            quad = (pbox * self._boxToQuad).sum(1)
+            return adv, quad
+        else: return 0, 0
+
+    def _initFace(self):
+        wsort = self.translate(self._fixedWidthChars)
+
+        # find the fixedAdv for this font
+        self.fixedAdv = wsort['advance'].max(0)
+
+        # update already populated sorts
+        self.setSorts('advance', self.fixedAdv)
 

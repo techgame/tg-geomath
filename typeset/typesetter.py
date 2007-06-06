@@ -48,6 +48,9 @@ class TypeSetter(DataHostObject):
     def write(self, text, **kw):
         if kw: self.attr(kw.items())
 
+        if not text:
+            return 
+
         face = self.face
         sorts = face.translate(text)
 

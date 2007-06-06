@@ -17,10 +17,12 @@ import numpy
 #~ Definitions 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+defaultPageSize = (1024, 1024)
 class MosaicPage(object):
+    glyphCount = 0
     _sizeToTexCoords = numpy.array([[0.,1.], [1.,1.], [1.,0.], [0.,0.]], 'f')
 
-    def __init__(self, pageSize):
+    def __init__(self, pageSize=defaultPageSize):
         w, h = pageSize
         self.data = numpy.zeros((h, w), 'B')
         
@@ -104,7 +106,9 @@ class MosaicPage(object):
         if block is None:
             return None
         bx, by = block
+
         self.data[by:by+h, bx:bx+w] = bmp
+        self.glyphCount += 1
 
         coords = ((w,h) * self._sizeToTexCoords) + (bx, by)
         return self, coords
@@ -139,7 +143,7 @@ class MosaicPage(object):
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class MosaicPageArena(object):
-    def __init__(self, pageSize=(1024,1024)):
+    def __init__(self, pageSize=defaultPageSize):
         self._entries = {}
         self.pages = []
         self.pageSize = pageSize
@@ -187,7 +191,7 @@ class MosaicPageArena(object):
         page = self.newPageForBitmap(bmp)
         entry = page.newEntryFor(bmp)
         if entry is None:
-            raise RuntimeError("Stupid darn")
+            raise RuntimeError("No room for bmp in new page")
         return entry
 
     def newPageForBitmap(self, bmp):

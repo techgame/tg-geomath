@@ -10,3 +10,8 @@
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+from .base import Animation
+from .context import AnimationRegistry, AnimationContext
+from .targets import AnimateToTarget, AnimationTargetView
+from .animators import afm, Animator, Timeline, Chain, Interval, Offset
+

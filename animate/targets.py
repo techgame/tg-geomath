@@ -11,82 +11,90 @@
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+from functools import partial
 from operator import setitem, getitem
+
+from TG.metaObserving import OBFactoryMap
+
+from .base import Animation
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class AnimateTarget(object):
-    def __init__(self, target, key, v0, v1, updateFn):
-        self.target = target
+class AnimateToTarget(Animation):
+    def bind(self, fset, host, key):
+        self.host = host
         self.key = key
-        self.updateFn = updateFn
+        self.update = partial(fset, host, key)
+
+    def setValues(self, v0, v1):
         if hasattr(v0, 'copy'):
             v0 = v0.copy()
         self.v0 = v0
+        if hasattr(v1, 'copy'):
+            v1 = v1.copy()
         self.v1 = v1
 
-    def register(self, bAdd=True):
-        if bAdd:
-            animateCollection[self.akey()] = self
-        else:
-            animateCollection.pop(self.akey(), None)
+    def registryKey(self):
+        try: 
+            hkey = hash(self.key)
+        except TypeError: 
+            hkey = id(self.key)
+        return ((id(self.host), hkey))
 
-    def akey(self):
-        try: hkey = hash(self.key)
-        except TypeError: hkey = id(self.key)
-        return (id(self.target), hkey)
+    def animate(self, tv, av, info):
+        if av <= 0: 
+            return False
 
-    def __call__(self, t):
-        if t <= 0: 
-            return
-        elif t < 1: 
-            v = (1-t)*self.v0 + (t)*self.v1
-        else: 
-            v = self.v1
-            self.register(False)
+        if av < 1: 
+            v = (1.0 - av)*self.v0 + (av)*self.v1
+        else: v = 0*self.v0 + self.v1
 
-        self.updateFn(self.target, self.key, v)
-        return self.target
+        self.update(v)
+        return (av >= 1)
 
-animateCollection = {}
-def animateAt(t):
-    for e in animateCollection.values():
-        e(t)
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class TargetView(object):
-    __slots__ = ['host']
-    AnimateTarget = AnimateTarget
+class AnimationTargetView(object):
+    __slots__ = ['_animator_', '_obj_']
+    _fm_ = OBFactoryMap(AnimateToTarget = AnimateToTarget)
 
-    def __init__(self, host):
-        self.host = host
+    def __init__(self, animator, obj):
+        self._animator_ = animator
+        self._obj_ = obj
 
-    @classmethod
-    def new(klass, host):
-        return klass(host)
+    def _follow_(self, obj):
+        return type(self)(self._animator_, obj)
 
-    def addTarget(self, target, key, v0, v1, updateFn):
-        target = self.AnimateTarget(target, key, v0, v1, updateFn)
-        target.register(True)
+    def __enter__(self):
+        return self
+    def __exit__(self, exc_type, exc_value, exc_tb):
+        pass
+
+    def _addTarget_(self, v0, v1, fset, host, key):
+        target = self._fm_.AnimateToTarget()
+        target.bind(fset, host, key)
+        target.setValues(v0, v1)
+        self._animator_.add(target)
         return target
 
     def __getattr__(self, key):
-        return self.new(getattr(self.host, key))
+        return self._follow_(getattr(self._obj_, key))
     def __setattr__(self, key, v1):
         if key in self.__slots__:
             return object.__setattr__(self, key, v1)
 
-        host = self.host
-        v0 = getattr(host, key)
-        return self.addTarget(host, key, v0, v1, setattr)
+        obj = self._obj_
+        v0 = getattr(obj, key)
+        return self._addTarget_(v0, v1, setattr, obj, key)
 
     def __getitem__(self, key):
-        return self.new(self.host[key])
+        return self._follow_(self._obj_[key])
     def __setitem__(self, key, v1):
-        host = self.host
-        v0 = host[key]
-        return self.addTarget(host, key, v0, v1, setitem)
+        obj = self._obj_
+        v0 = obj[key]
+        return self._addTarget_(v0, v1, setitem, obj, key)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Main 
@@ -100,9 +108,9 @@ if __name__=='__main__':
     p['foo'][1] = 8
 
     print
-    for t in [i*0.1 for i in range(-2, 5)]:
-        animateAt(t)
-        print '%5s: %r' % (t, v)
+    for av in [i*0.1 for i in range(-2, 5)]:
+        animateAt(av)
+        print '%5s: %r' % (av, v)
     print
 
     print 'change direction!'
@@ -110,8 +118,8 @@ if __name__=='__main__':
     p['foo'][2] = 100
 
     print
-    for t in [i*0.1 for i in range(5, 12)]:
-        animateAt(t)
-        print '%5s: %r' % (t, v)
+    for av in [i*0.1 for i in range(5, 12)]:
+        animateAt(av)
+        print '%5s: %r' % (av, v)
     print
 

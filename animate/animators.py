@@ -24,6 +24,7 @@ afm = AnimatorFactoryMap()
 afm.Registry = AnimationRegistry
 afm.ToTarget = AnimateToTarget
 afm.TargetView = AnimationTargetView
+afm.touchfn = (lambda tv, av, info: True)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -33,6 +34,8 @@ class Animator(AnimationContext):
     def __repr__(self):
         return "<%s %1.1f>"
 
+    def __call__(self, fn):
+        return self.addFn(fn)
     def __enter__(self):
         return self
     def __exit__(self, exc_type, exc_value, exc_tb):
@@ -47,7 +50,8 @@ class Animator(AnimationContext):
     def offset(self, td):
         ar = self.afm.Offset(self, td)
         return self.add(ar)
-    delay = offset
+    after = delay = offset
+
     def chain(self, iterable=None):
         ar = self.afm.Chain(self, iterable)
         return self.add(ar)
@@ -58,6 +62,13 @@ class Animator(AnimationContext):
     view = target
     def targetView(self, obj, animator):
         return self.afm.TargetView(animator, obj)
+    def toTarget(self, v0, v1, fset, host, key):
+        ar = self.afm.ToTarget()
+        ar.endpoints(v0, v1)
+        ar.bind(fset, host, key)
+        return self.add(ar)
+    def touch(self):
+        return self.add(self.afm.touchfn)
 afm.Animator = Animator
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -106,7 +117,7 @@ class Offset(Animator):
     def animate(self, tv, av, info):
         dtv = self.dtv(tv)
         if dtv < 0:
-            return False
+            return True
         return self.animateGroup(tv, av, info)
 afm.Offset = Offset
 

@@ -80,6 +80,9 @@ class AnimationContext(Animation):
     def onReplaced(self, animation):
         self.discard(animation)
 
+    def __len__(self):
+        return len(self._animateList)
+
     def __iadd__(self, animation):
         self.add(animation)
         return self
@@ -93,6 +96,14 @@ class AnimationContext(Animation):
             animation.initAnimation(self)
         self._animateList.append(animate)
         return animation
+    def addFn(self, fn, incInfo=False):
+        if incInfo:
+            lfn = lambda tv, av, i: fn(i)
+        else: lfn = lambda tv, av, i: fn()
+
+        self._animateList.append(lfn)
+        return fn
+
     def extend(self, iterable):
         for animation in iterable:
             self.add(animation)
@@ -116,23 +127,23 @@ class AnimationContext(Animation):
         alist = self._animateList
         for idx, animate in enumerate(alist):
             # if animate is done
-            if animate(tv, av, info):
+            if not animate(tv, av, info):
                 alist[idx] = None
 
         alist[:] = [a for a in alist if a is not None]
-        return len(alist) == 0
+        return len(alist)
     
     def _animateSerial(self, tv, av, info):
         self.tv = tv
         alist = self._animateList
         for idx, animate in enumerate(alist):
             # if animate is done
-            if animate(tv, av, info):
+            if not animate(tv, av, info):
                 alist[idx] = None
             else: break
 
         alist[:] = [a for a in alist if a is not None]
-        return len(alist) == 0
+        return len(alist)
 
     _animateGroup = _animateParallel
 

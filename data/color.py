@@ -115,6 +115,7 @@ class ColorVector(Vector):
     g = VectorItemProperty(numpy.s_[..., 1:2])
     b = VectorItemProperty(numpy.s_[..., 2:3])
     rgb = VectorItemProperty(numpy.s_[..., 0:3])
+    rgba = VectorItemProperty(numpy.s_[..., :])
 
     alpha = a = VectorItemProperty(numpy.s_[..., 3:4])
 

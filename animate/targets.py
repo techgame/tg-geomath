@@ -27,14 +27,16 @@ class AnimateToTarget(Animation):
         self.host = host
         self.key = key
         self.update = partial(fset, host, key)
+        return self
 
-    def setValues(self, v0, v1):
+    def endpoints(self, v0, v1):
         if hasattr(v0, 'copy'):
             v0 = v0.copy()
         self.v0 = v0
         if hasattr(v1, 'copy'):
             v1 = v1.copy()
         self.v1 = v1
+        return self
 
     def registryKey(self):
         try: 
@@ -45,20 +47,19 @@ class AnimateToTarget(Animation):
 
     def animate(self, tv, av, info):
         if av <= 0: 
-            return False
+            return True
 
         if av < 1: 
             v = (1.0 - av)*self.v0 + (av)*self.v1
         else: v = 0*self.v0 + self.v1
 
         self.update(v)
-        return (av >= 1)
+        return (av < 1)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class AnimationTargetView(object):
     __slots__ = ['_animator_', '_obj_']
-    _fm_ = OBFactoryMap(AnimateToTarget = AnimateToTarget)
 
     def __init__(self, animator, obj):
         self._animator_ = animator
@@ -72,13 +73,6 @@ class AnimationTargetView(object):
     def __exit__(self, exc_type, exc_value, exc_tb):
         pass
 
-    def _addTarget_(self, v0, v1, fset, host, key):
-        target = self._fm_.AnimateToTarget()
-        target.bind(fset, host, key)
-        target.setValues(v0, v1)
-        self._animator_.add(target)
-        return target
-
     def __getattr__(self, key):
         return self._follow_(getattr(self._obj_, key))
     def __setattr__(self, key, v1):
@@ -87,14 +81,14 @@ class AnimationTargetView(object):
 
         obj = self._obj_
         v0 = getattr(obj, key)
-        return self._addTarget_(v0, v1, setattr, obj, key)
+        return self._animator_.toTarget(v0, v1, setattr, obj, key)
 
     def __getitem__(self, key):
         return self._follow_(self._obj_[key])
     def __setitem__(self, key, v1):
         obj = self._obj_
         v0 = obj[key]
-        return self._addTarget_(v0, v1, setitem, obj, key)
+        return self._animator_.toTarget(v0, v1, setitem, obj, key)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Main 

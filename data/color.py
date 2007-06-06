@@ -116,7 +116,7 @@ class ColorVector(Vector):
     b = VectorItemProperty(numpy.s_[..., 2:3])
     rgb = VectorItemProperty(numpy.s_[..., 0:3])
 
-    a = VectorItemProperty(numpy.s_[..., 3:4])
+    alpha = a = VectorItemProperty(numpy.s_[..., 3:4])
 
     def __setvalue__(self, value):
         if isinstance(value, basestring):

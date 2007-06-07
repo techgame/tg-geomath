@@ -122,23 +122,23 @@ class AnimationContext(Animation):
     def animate(self, tv, av, info):
         raise NotImplementedError('Subclass Responsibility: %r' % (self,))
 
-    def _animateParallel(self, tv, av, info):
+    def _animateParallel(self, tv, av, rmgr):
         self.tv = tv
         alist = self._animateList
         for idx, animate in enumerate(alist):
             # if animate is done
-            if not animate(tv, av, info):
+            if not animate(tv, av, rmgr):
                 alist[idx] = None
 
         alist[:] = [a for a in alist if a is not None]
         return len(alist)
     
-    def _animateSerial(self, tv, av, info):
+    def _animateSerial(self, tv, av, rmgr):
         self.tv = tv
         alist = self._animateList
         for idx, animate in enumerate(alist):
             # if animate is done
-            if not animate(tv, av, info):
+            if not animate(tv, av, rmgr):
                 alist[idx] = None
             else: break
 

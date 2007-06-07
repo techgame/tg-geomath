@@ -70,6 +70,6 @@ class Animation(DataHostObject):
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    def animate(self, tv, av, info):
+    def animate(self, tv, av, rmgr):
         raise NotImplementedError('Subclass Responsibility: %r' % (self,))
 

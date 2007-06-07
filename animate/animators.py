@@ -101,10 +101,10 @@ class Interval(Animator):
     def scale(self, av, dtv, dts):
         return min(1., max(0., dts))
 
-    def animate(self, tv, av, info):
+    def animate(self, tv, av, rmgr):
         dtv, dts = self.dtv_dts(tv)
         avp = self.afn(av or 0.0, dtv, dts)
-        return self.animateGroup(tv, avp, info)
+        return self.animateGroup(tv, avp, rmgr)
 afm.Interval = Interval
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -114,10 +114,10 @@ class Offset(Animator):
         Animator.__init__(self, parentCtx)
         self.td = td
 
-    def animate(self, tv, av, info):
+    def animate(self, tv, av, rmgr):
         dtv = self.dtv(tv)
         if dtv < 0:
             return True
-        return self.animateGroup(tv, av, info)
+        return self.animateGroup(tv, av, rmgr)
 afm.Offset = Offset
 

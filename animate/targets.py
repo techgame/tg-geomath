@@ -45,7 +45,7 @@ class AnimateToTarget(Animation):
             hkey = id(self.key)
         return ((id(self.host), hkey))
 
-    def animate(self, tv, av, info):
+    def animate(self, tv, av, rmgr):
         if av <= 0: 
             return True
 

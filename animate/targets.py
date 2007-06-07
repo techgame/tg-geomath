@@ -53,6 +53,9 @@ class AnimateToTarget(Animation):
             v = (1.0 - av)*self.v0 + (av)*self.v1
         else: v = 0*self.v0 + self.v1
 
+        # this is actually a detail of helix...
+        if hasattr(rmgr, 'invalidate'):
+            rmgr.invalidate()
         self.update(v)
         return (av < 1)
 

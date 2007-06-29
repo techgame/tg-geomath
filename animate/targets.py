@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
 ##~ Copyright (C) 2002-2007  TechGame Networks, LLC.              ##
 ##~                                                               ##
@@ -12,9 +11,7 @@
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 from functools import partial
-from operator import setitem, getitem
-
-from TG.metaObserving import OBFactoryMap
+from operator import setitem
 
 from .base import Animation
 
@@ -92,31 +89,4 @@ class AnimationTargetView(object):
         obj = self._obj_
         v0 = obj[key]
         return self._animator_.toTarget(v0, v1, setitem, obj, key)
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#~ Main 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-if __name__=='__main__':
-    v = {'cool': 10, 'foo': [0, 2, 4]}
-
-    p = TargetView(v)
-    p['cool'] = 20
-    p['foo'][1] = 8
-
-    print
-    for av in [i*0.1 for i in range(-2, 5)]:
-        animateAt(av)
-        print '%5s: %r' % (av, v)
-    print
-
-    print 'change direction!'
-    p['cool'] = 40
-    p['foo'][2] = 100
-
-    print
-    for av in [i*0.1 for i in range(5, 12)]:
-        animateAt(av)
-        print '%5s: %r' % (av, v)
-    print
 

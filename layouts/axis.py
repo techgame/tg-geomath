@@ -25,27 +25,26 @@ from .basic import BaseLayoutStrategy
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class AxisLayoutStrategy(BaseLayoutStrategy):
-    _nAdjustTries = 3
     axis = Vector.property([0,0], 'b')
 
     def layoutCalc(self, cells, box):
+        #lbox = box.copy()
         lbox = box.copy()
-        rbox = box.copy()
-        axisSizes = self.axisSizesFor(cells, lbox)
+        axisSizes, lbox = self.axisSizesFor(cells, lbox)
 
         # calculate what we used of the box
         axis = self.axis
-        lsize = (1-axis)*rbox.size
+        lsize = (1-axis)*lbox.size
         # add axisSize and borders along axis
         lsize += axisSizes.sum(0) + axis*(2*self.outside + (len(axisSizes)-1)*self.inside)
-        rbox.size = lsize
-        return rbox
+        lbox.size = lsize
+        return lbox
 
     def layoutCells(self, cells, box):
         lbox = box.copy()
 
         # determin sizes for cells
-        axisSizes = self.axisSizesFor(cells, lbox)
+        axisSizes, lbox = self.axisSizesFor(cells, lbox)
 
         iCellBoxes = self.iterCellBoxes(cells, lbox, axisSizes)
         iCells = iter(cells)
@@ -64,7 +63,7 @@ class AxisLayoutStrategy(BaseLayoutStrategy):
         weights, axisSizes = self.cellWeightsMinSizes(cells)
 
         minNonAxisSize = (1-axis)*(axisSizes.max() + 2*self.outside)
-        lbox.size[:] = numpy.max([lbox.size, minNonAxisSize], 0)
+        lbox.size = numpy.max([lbox.size, minNonAxisSize], axis=0)
         weights *= axis
         axisSizes *= axis
 
@@ -79,9 +78,9 @@ class AxisLayoutStrategy(BaseLayoutStrategy):
         if (availSize >= 0).all():
             weightSum = weights.sum()
             if weightSum > 0:
-                axisSizes += weights*availSize/weightSum
+                axisSizes += (weights*availSize)/weightSum
 
-        return axisSizes
+        return axisSizes, lbox
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -94,15 +93,14 @@ class AxisLayoutStrategy(BaseLayoutStrategy):
         cellBox = Box()
 
         # let each cell know it's new pos and size
-        p0 = lbox.pos + outside
+        p0 = lbox.at[0,1] + (1,-1)*outside
         for asize in axisSizes:
-            psize = p0 + asize
-            cellBox.pv = (p0, psize + nonAxisSize)
+            cellBox.pv = (p0-asize, p0 + nonAxisSize)
             yield cellBox
 
-            p0 = psize + axisBorders
+            p0 = p0 - asize - axisBorders
 
-        #p0 += axis*outside - axisBorders
+        #p0 -= axis*outside
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

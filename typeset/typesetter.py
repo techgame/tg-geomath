@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 ##~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~##
 ##~ Copyright (C) 2002-2007  TechGame Networks, LLC.              ##
 ##~                                                               ##
@@ -15,16 +14,27 @@ import numpy
 from numpy import zeros, empty, recarray
 
 from TG.geomath.data.color import Color, DataHostObject
+from TG.geomath.data.vector import Vector, DataHostObject
 from .wrap import wrapModeMap
+
+from .textblock import TextBlock
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~ Constants / Variiables / Etc. 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+_alignmentReverse = {0.0: 'left', 0.5: 'center', 1.0: 'right'}
+_alignmentLookup = {'left':0.0, 'center':0.5, 'right':1.0}
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class TypeSetter(DataHostObject):
+    TextBlock = TextBlock
     offset = 0
     face = None
-    kern = True
+    kern = False
     color = Color.property('#ff')
 
     def __init__(self, **kw):
@@ -38,9 +48,24 @@ class TypeSetter(DataHostObject):
             for n, v in attrs:
                 setattr(self, n, v)
 
-    def clear(self):
-        self.text = u''
-        self._rope = []
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    alignVector = Vector.property([0.0, 1.0])
+    def getAlign(self, axis=0):
+        aw = self.alignVector[axis]
+        return _alignmentReverse.get(self._align, self._align)
+    def setAlign(self, align, axis=0):
+        aw = _alignmentLookup.get(align, None)
+        if aw is None:
+            aw = float(align)
+        self.alignVector[axis] = aw
+    align = property(getAlign, setAlign)
+
+    def getVerticalAlign(self):
+        return self.getAlign(1)
+    def setVerticalAlign(self, align, axis=0):
+        self.setAlign(align, 1)
+    valign = verticalAlign = property(getVerticalAlign, setVerticalAlign)
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -50,6 +75,9 @@ class TypeSetter(DataHostObject):
 
         if not text:
             return 
+
+        if not isinstance(text, unicode):
+            text = unicode(text)
 
         face = self.face
         sorts = face.translate(text)
@@ -67,9 +95,12 @@ class TypeSetter(DataHostObject):
 
         self.text += text
         self._rope.append(sorts)
-    add = write
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    def clear(self):
+        self.text = u''
+        self._rope = []
 
     def getSorts(self):
         if not self.text: 
@@ -87,13 +118,16 @@ class TypeSetter(DataHostObject):
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     wrapMode = None
+    wrapSize = Vector.property([0,0])
     _wrapModes = wrapModeMap
-    def wrap(self, size=None, wrapMode=None):
+    def wrap(self, wrapSize=None, wrapMode=None):
         text = self.text
         if not text: return []
 
         if wrapMode is None:
             wrapMode = self.wrapMode
+        if wrapSize is None:
+            wrapSize = self.wrapSize
 
         if not hasattr(wrapMode, 'wrapSlices'):
             if isinstance(wrapMode, basestring):
@@ -101,6 +135,15 @@ class TypeSetter(DataHostObject):
             wrapMode = self._wrapModes[wrapMode]()
 
         sorts = self.sorts
-        wrapSlices = wrapMode.wrapSlices(size, text, sorts['offset'])
+        wrapSlices = wrapMode.wrapSlices(wrapSize, text, sorts['offset'])
         return text, sorts, wrapSlices
+
+    def blocks(self, clear=False):
+        text, sorts, wrapSlices = self.wrap()
+        if clear:
+            self.clear()
+
+        TextBlock = self.TextBlock
+        blocks = [TextBlock(text[ws], sorts[ws], ws, self) for ws in wrapSlices]
+        return blocks
 

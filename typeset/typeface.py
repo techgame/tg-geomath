@@ -194,7 +194,7 @@ class FTTypeface(Typeface):
         return idx
 
     def _geomForGlyph(self, gidx, ftGlyphSlot, char):
-        if gidx and char not in ('\n\r\t\v'):
+        if gidx:
             adv = (1,-1)*ftGlyphSlot.padvance
 
             pbox = ftGlyphSlot.pbox
@@ -212,12 +212,9 @@ class FTTypeface(Typeface):
     def bitmapFor(self, sort):
         ftFace = self._ftFace
         gi = int(sort['glyphidx'])
-        if not gi:
-            if not sort['advance'].sum():
-                return None
-
-        ftGlyphSlot = ftFace.loadGlyph(gi)
-        return ftGlyphSlot.render()
+        if gi or sort['advance'].sum():
+            ftGlyphSlot = ftFace.loadGlyph(gi)
+            return ftGlyphSlot.render()
 
 
 class FTFixedTypeface(FTTypeface):
@@ -225,7 +222,7 @@ class FTFixedTypeface(FTTypeface):
     _fixedWidthChars = string.letters
 
     def _geomForGlyph(self, gidx, ftGlyphSlot, char):
-        if gidx and char not in ('\n\r\t\v'):
+        if gidx:
             adv = self.fixedAdv
             if adv is None:
                 adv = (1,-1)*ftGlyphSlot.padvance

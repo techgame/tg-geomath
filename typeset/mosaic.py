@@ -11,6 +11,7 @@
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 from bisect import bisect_right
+from collections import defaultdict
 import numpy
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -155,16 +156,13 @@ class MosaicPageArena(object):
 
     def texCoords(self, sorts, texMesh):
         pageForSort = self.pageForSort
-        p0 = None
+
+        pages = defaultdict(list)
         for i in xrange(len(sorts)):
-            e = pageForSort(sorts[i])
-            if e is None: continue
-
-            if p0 is None: p0 = e[0]
-            else: assert e[0] is p0
-
-            texMesh[i] = e[1]
-        return p0
+            page, tc = pageForSort(sorts[i]) or (None, 0)
+            pages[page].append(i)
+            texMesh[i] = tc
+        return pages
 
     def pageForSort(self, sort, create=True):
         sortkey = int(sort['hidx'])

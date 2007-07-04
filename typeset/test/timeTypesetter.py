@@ -35,7 +35,7 @@ def main():
         ts = TypeSetter(face = face)
 
         t0 = time.time()
-        ts.add(text)
+        ts.write(text)
         sorts = ts.sorts
         t1 = time.time()
 

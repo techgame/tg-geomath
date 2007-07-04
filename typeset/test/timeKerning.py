@@ -37,7 +37,7 @@ def main():
     assert 'AVG' in text
 
     ts = TypeSetter(face = face)
-    ts.add(text)
+    ts.write(text)
 
     wrapper = None
     if bPrintLines:
@@ -54,7 +54,7 @@ def main():
         for x in xrange(5):
             ts = TypeSetter(face = face)
             t0 = time.time()
-            ts.add(text)
+            ts.write(text)
             lines = list(ts.wrap(wrapSize, wrapper))
             t1 = time.time()
             print '%1.6fs, %.3f Mbps, %d glyphs, lines: %d' % ((t1-t0), len(text)*Mbps/(t1-t0), len(text), len(lines))
@@ -75,7 +75,7 @@ def main():
         for x in xrange(5):
             ts = TypeSetter(face = face)
             t0 = time.time()
-            ts.add(text)
+            ts.write(text)
             lines = list(ts.wrap(wrapSize, wrapper))
             t1 = time.time()
             print '%1.6fs, %.3f Mbps, %d glyphs, lines: %d' % ((t1-t0), len(text)*Mbps/(t1-t0), len(text), len(lines))
@@ -97,7 +97,7 @@ def main():
         for x in xrange(5):
             ts = TypeSetter(face = face)
             t0 = time.time()
-            ts.add(text)
+            ts.write(text)
             lines = list(ts.wrap(wrapSize, wrapper))
             t1 = time.time()
             print '%1.6fs, %.3f Mbps, %d glyphs, lines: %d' % ((t1-t0), len(text)*Mbps/(t1-t0), len(text), len(lines))

@@ -394,7 +394,7 @@ class Box(object):
         data[:] += -(data*ar).sum(-2) + value
         self._data_changed_
 
-    def posForSizeAt(self, rel, size=None, sidx=Ellipsis, xfrm=-_xfrmSize):
+    def posForSizeAt(self, rel, size, sidx=Ellipsis, xfrm=-_xfrmSize):
         ar = self._asBlend(rel)
         v = (self._data[sidx]*ar).sum(-2) + xfrm*(ar*size)
         v.sort(-2)

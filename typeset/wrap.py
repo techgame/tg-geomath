@@ -31,8 +31,12 @@ class RETextWrapper(BasicTextWrapper):
     def wrapPoints(self, size, text, offset):
         iterMatches = self.re_wrapPoints.finditer(text)
         i0 = 0
+        i1 = None
         for match in iterMatches:
-            i1 = match.end()
+            i1 = match.end() + 1
+            if i1-i0 <= 1 and i1>len(text):
+                break
+
             yield slice(i0, i1)
             i0 = i1
 
@@ -57,7 +61,7 @@ class TextWrapper(RETextWrapper):
         iLine = 0; offLine = offset[iLine]
         iCurr = iLine; offCurr = offLine
         for textSlice in self.wrapPoints(size, text, offset):
-            iNext = textSlice.stop
+            iNext = textSlice.stop-1
             if iNext >= len(offset):
                 break
 

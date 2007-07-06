@@ -24,7 +24,7 @@ class MosaicPage(object):
     _sizeToTexCoords = numpy.array([[0.,1.], [1.,1.], [1.,0.], [0.,0.]], 'f')
 
     def __init__(self, pageSize=defaultPageSize):
-        w, h = pageSize
+        w, h = pageSize or defaultPageSize
         self.data = numpy.zeros((h, w), 'B')
         
         self.blocks = {}
@@ -132,6 +132,9 @@ class MosaicPage(object):
             img.save(filename)
         return img
 
+    def save(self, filename='page.png'):
+        return self.asImage(self.data, filename)
+
     def printBlockInfo(self):
         print '=========================='
         width = self.size[0]/100.0
@@ -147,22 +150,55 @@ class MosaicPageArena(object):
     def __init__(self, pageSize=defaultPageSize):
         self._entries = {}
         self.pages = []
-        self.pageSize = pageSize
+        self.pageSize = pageSize or defaultPageSize
 
     def __contains__(self, sort):
         return self.pageForSort(sort, False)
     def __getitem__(self, sorts):
         return map(self.pageForSort, sorts)
 
-    def texCoords(self, sorts, texMesh):
-        pageForSort = self.pageForSort
+    def save(self, filenames='page-%s.png'):
+        for i, page in enumerate(self.pages):
+            page.save(filenames % (i,))
 
-        pages = defaultdict(list)
-        for i in xrange(len(sorts)):
-            page, tc = pageForSort(sorts[i]) or (None, 0)
-            pages[page].append(i)
-            texMesh[i] = tc
-        return pages
+    def texCoords(self, sorts, texCoords=None):
+        pageMap = defaultdict(list)
+        if texCoords is None:
+            texCoords = numpy.empty((len(sorts), 4, 2), 'f')
+
+        pageForSort = self.pageForSort
+        for i, srt in enumerate(sorts):
+            page, tc = pageForSort(srt) or (None, 0)
+            pageMap[page].append(i)
+            texCoords[i] = tc
+
+        return pageMap, texCoords
+
+    def texMap(self, sorts, texCoords=None):
+        pageMap, texCoords = self.texCoords(sorts, texCoords)
+
+        pimNone = pageMap.pop(None)
+        pageMapItems = pageMap.items()
+        count = 1+sum(len(pim) for page, pim in pageMapItems)
+
+        mapIdxPush = numpy.empty(len(sorts), 'h')
+        mapIdxPull = numpy.empty(count, 'h')
+        
+        # All None page entries take position zero
+        pageMap[None] = slice(0, 1)
+        mapIdxPush[pimNone] = 0
+
+        mapIdxPull[0:1] = pimNone[0]
+
+        i0 = i1 = 1
+        for page, pim in pageMapItems:
+            i1 = i0 + len(pim)
+            pageMap[page] = slice(i0, i1)
+            mapIdxPush[pim] = range(i0, i1)
+            mapIdxPull[i0:i1] = pim
+            i0 = i1
+
+        return pageMap, mapIdxPush, mapIdxPull, texCoords
 
     def pageForSort(self, sort, create=True):
         sortkey = int(sort['hidx'])

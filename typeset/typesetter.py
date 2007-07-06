@@ -31,7 +31,6 @@ _alignmentLookup = {'left':0.0, 'center':0.5, 'right':1.0}
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class TypeSetter(DataHostObject):
-    TextBlock = TextBlock
     offset = 0
     face = None
     kern = False
@@ -137,13 +136,4 @@ class TypeSetter(DataHostObject):
         sorts = self.sorts
         wrapSlices = wrapMode.wrapSlices(wrapSize, text, sorts['offset'])
         return text, sorts, wrapSlices
-
-    def blocks(self, clear=False):
-        text, sorts, wrapSlices = self.wrap()
-        if clear:
-            self.clear()
-
-        TextBlock = self.TextBlock
-        blocks = [TextBlock(text[ws], sorts[ws], ws, self) for ws in wrapSlices]
-        return blocks
 

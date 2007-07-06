@@ -25,42 +25,107 @@ from .mosaic import MosaicPageArena
 #~ Definitions 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+class BlockLineset(DataHostObject):
+    def __init__(self, textBlock):
+        self._wrTextBlock = weakref.proxy(textBlock) 
+        self.clear()
+
+    def clear(self):
+        self.slEnd = 0
+        self.textRope = []
+        self.sortsRope = []
+        self.lines = []
+
+    def flush(self, typeset):
+        if not typeset.text:
+            return 
+
+        align = typeset.alignVector.copy()
+        text, sorts, wrapSlices = typeset.wrap()
+        typeset.clear()
+        
+        def soff(ws, off=self.slEnd):
+            return slice(ws.start+off, ws.stop+off)
+
+        blk = self._wrTextBlock
+        self.lines.extend(TextBlockLine(blk, soff(ws), text[ws], sorts[ws], align) for ws in wrapSlices)
+
+        self.slEnd += len(sorts)
+        self.textRope.append(text)
+        self.sortsRope.append(sorts)
+
+    def compile(self, typeset):
+        self.flush(typeset)
+
+        text = ''.join(self.textRope)
+        sorts = numpy.concatenate(self.sortsRope)
+        lines = self.lines
+        self.clear()
+
+        return text, sorts, lines
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 class TextBlock(DataHostObject):
     box = Box.property([0.0, 0.0], dtype='f')
     fit = True
+    arena = None
 
     def __init__(self, fit=True, pageSize=None):
-        self.createLayout(fit)
+        self.init(fit)
         self.createArena(pageSize)
 
-    def createArena(self, pageSize=None):
-        self.arena = MosaicPageArena(pageSize)
+    def init(self, fit=True):
+        self.lineset = BlockLineset(self)
 
-    def createLayout(self, fit=True):
         self.fit = fit
         self.layoutAlg = TextLayoutStrategy()
 
-    def update(self, typeset, clear=True):
-        self.align = typeset.alignVector.copy()
+    @classmethod
+    def createArena(klass, pageSize=None):
+        if klass.arena is None:
+            klass.arena = MosaicPageArena(pageSize)
 
-        text, sorts, wrapSlices = typeset.wrap()
-        if clear:
-            typeset.clear()
-        
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    def clear(self):
+        self.lineset.clear()
+        self.lines = []
+
+        self.texCoords = []
+        self.pageMap = {}
+        self.meshes = {}
+        self._mapIdxPush = []
+        self._mapIdxPull = []
+
+    def flush(self, typeset):
+        self.lineset.flush(typeset)
+        return self
+
+    def compile(self, typeset=None):
+        text, sorts, lines = self.lineset.compile(typeset)
         self.text = text
+        self.lines = lines
         self._arenaMapSorts(sorts)
-
-        wrSelf = weakref.proxy(self)
-        self.lines = [TextBlockLine(wrSelf, ws, text[ws], sorts[ws]) for ws in wrapSlices]
         self.layout()
+        return self
 
     def layout(self, fit=None):
         if fit is None:
             fit = self.fit
-
         if fit:
             self.box[:] = self.layoutAlg.fit(self.lines, self.box)
         self.layoutAlg(self.lines, self.box)
+
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    def getAtColor(self):
+        return AtColorSyntax(self)
+    def setAtColor(self, value):
+        self.color[:] = value
+    color = property(getAtColor, setAtColor)
+
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def _arenaMapSorts(self, sorts):
         pageMap, mapIdxPush, mapIdxPull, texCoords = self.arena.texMap(sorts)
@@ -73,7 +138,7 @@ class TextBlock(DataHostObject):
         count = len(mapIdxPull)
         meshes = dict(
             vertex = numpy.empty((count, 4, 2), 'l'),
-            color = Color.fromShape((count, 4, 4), dtype='B'),
+            color = Color.fromShape((count, 4, 4), 'B'),
             texture = numpy.empty((count, 4, 2), 'f'),
             )
         self.meshes = meshes
@@ -89,12 +154,6 @@ class TextBlock(DataHostObject):
         meshes = self.meshes
         meshes['vertex'][idxPush] = meshes['quads'][idxPush] + lineOffsets
 
-    def _getAtColor(self):
-        return AtColorSyntax(self)
-    def _setAtColor(self, value):
-        self.color[:] = value
-    color = property(_getAtColor, _setAtColor)
-
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class TextLayoutStrategy(AxisLayoutStrategy):
@@ -106,9 +165,9 @@ class TextBlockLine(DataHostObject):
     tbox = Box.property([0.0, 0.0], dtype='f')
     box = Box.property([0.0, 0.0], dtype='f')
 
-    def __init__(self, host, slice, text, sorts):
-        self.host = host
-        self.align = host.align
+    def __init__(self, block, slice, text, sorts, align):
+        self.block = block
+        self.align = align
         self.slice = slice
         self.text = text
         self.init(sorts)
@@ -146,7 +205,7 @@ class TextBlockLine(DataHostObject):
     def layoutInBox(self, box):
         align = self.align
         self.box.at[align] = box.at[align]
-        self.host.updateVertex(self.slice, self.offset)
+        self.block.updateVertex(self.slice, self.offset)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

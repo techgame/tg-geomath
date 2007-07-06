@@ -49,6 +49,17 @@ class TypeSetter(DataHostObject):
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+    _block = None
+    def getBlock(self):
+        if self._block is None:
+            self.setBlock(TextBlock())
+        return self._block
+    def setBlock(self, block):
+        self._block = block
+    block = property(getBlock, setBlock)
+
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
     alignVector = Vector.property([0.0, 1.0])
     def getAlign(self, axis=0):
         aw = self.alignVector[axis]
@@ -57,7 +68,9 @@ class TypeSetter(DataHostObject):
         aw = _alignmentLookup.get(align, None)
         if aw is None:
             aw = float(align)
-        self.alignVector[axis] = aw
+        if self.alignVector[axis] != aw:
+            self.flush()
+            self.alignVector[axis] = aw
     align = property(getAlign, setAlign)
 
     def getVerticalAlign(self):
@@ -119,14 +132,10 @@ class TypeSetter(DataHostObject):
     wrapMode = None
     wrapSize = Vector.property([0,0])
     _wrapModes = wrapModeMap
-    def wrap(self, wrapSize=None, wrapMode=None):
+    def wrap(self):
         text = self.text
-        if not text: return []
-
-        if wrapMode is None:
-            wrapMode = self.wrapMode
-        if wrapSize is None:
-            wrapSize = self.wrapSize
+        wrapMode = self.wrapMode
+        wrapSize = self.wrapSize
 
         if not hasattr(wrapMode, 'wrapSlices'):
             if isinstance(wrapMode, basestring):
@@ -136,4 +145,11 @@ class TypeSetter(DataHostObject):
         sorts = self.sorts
         wrapSlices = wrapMode.wrapSlices(wrapSize, text, sorts['offset'])
         return text, sorts, wrapSlices
+
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    def flush(self):
+        return self.block.flush(self)
+    def compile(self):
+        return self.block.compile(self)
 

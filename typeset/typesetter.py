@@ -13,6 +13,7 @@
 import numpy
 from numpy import zeros, empty, recarray
 
+from TG.metaObserving import OBFactoryMap
 from TG.geomath.data.color import Color, DataHostObject
 from TG.geomath.data.vector import Vector, DataHostObject
 from .wrap import wrapModeMap
@@ -24,13 +25,18 @@ from .textblock import TextBlock
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 _alignmentReverse = {0.0: 'left', 0.5: 'center', 1.0: 'right'}
-_alignmentLookup = {'left':0.0, 'center':0.5, 'right':1.0}
+_alignmentLookup = {'left':0.0, 'center':0.5, 'right':1.0, 'top':1.0, 'bottom':0.0}
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class TypeSetter(DataHostObject):
+    _fm_ = OBFactoryMap(
+            TextBlock = TextBlock,
+            wrapModes = wrapModeMap,
+            )
+
     offset = 0
     face = None
     kern = False
@@ -52,7 +58,7 @@ class TypeSetter(DataHostObject):
     _block = None
     def getBlock(self):
         if self._block is None:
-            self.setBlock(TextBlock())
+            self.setBlock(self._fm_.TextBlock())
         return self._block
     def setBlock(self, block):
         self._block = block
@@ -131,7 +137,6 @@ class TypeSetter(DataHostObject):
 
     wrapMode = None
     wrapSize = Vector.property([0,0])
-    _wrapModes = wrapModeMap
     def wrap(self):
         text = self.text
         wrapMode = self.wrapMode
@@ -140,7 +145,7 @@ class TypeSetter(DataHostObject):
         if not hasattr(wrapMode, 'wrapSlices'):
             if isinstance(wrapMode, basestring):
                 wrapMode = wrapMode.lower()
-            wrapMode = self._wrapModes[wrapMode]()
+            wrapMode = self._fm_.wrapModes[wrapMode]()
 
         sorts = self.sorts
         wrapSlices = wrapMode.wrapSlices(wrapSize, text, sorts['offset'])

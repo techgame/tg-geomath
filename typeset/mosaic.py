@@ -20,7 +20,7 @@ import numpy
 
 defaultPageSize = (1024, 1024)
 class MosaicPage(object):
-    glyphCount = 0
+    entryCount = 0
     _sizeToTexCoords = numpy.array([[0.,1.], [1.,1.], [1.,0.], [0.,0.]], 'f')
 
     def __init__(self, pageSize=defaultPageSize):
@@ -109,7 +109,7 @@ class MosaicPage(object):
         bx, by = block
 
         self.data[by:by+h, bx:bx+w] = bmp
-        self.glyphCount += 1
+        self.entryCount += 1
 
         coords = ((w,h) * self._sizeToTexCoords) + (bx, by)
         return self, coords
@@ -177,20 +177,23 @@ class MosaicPageArena(object):
     def texMap(self, sorts, texCoords=None):
         pageMap, texCoords = self.texCoords(sorts, texCoords)
 
-        pimNone = pageMap.pop(None)
+        pimNone = pageMap.pop(None, None)
         pageMapItems = pageMap.items()
-        count = 1+sum(len(pim) for page, pim in pageMapItems)
+        count = sum(len(pim) for page, pim in pageMapItems)
+        if pimNone: count += 1
 
         mapIdxPush = numpy.empty(len(sorts), 'h')
         mapIdxPull = numpy.empty(count, 'h')
         
         # All None page entries take position zero
-        pageMap[None] = slice(0, 1)
-        mapIdxPush[pimNone] = 0
+        i0 = i1 = 0
+        if pimNone is not None:
+            i1 = 1
+            pageMap[None] = slice(i0, i1)
+            mapIdxPush[pimNone] = i0
+            mapIdxPull[i0:i1] = pimNone[:i1-i0]
+            i0 = i1
 
-        mapIdxPull[0:1] = pimNone[0]
-
-        i0 = i1 = 1
         for page, pim in pageMapItems:
             i1 = i0 + len(pim)
             pageMap[page] = slice(i0, i1)

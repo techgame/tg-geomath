@@ -13,6 +13,7 @@
 import weakref
 import numpy
 
+from TG.metaObserving import OBFactoryMap
 from TG.geomath.data.vector import Vector, DataHostObject
 from TG.geomath.data.box import Box
 from TG.geomath.data.color import Color
@@ -23,137 +24,6 @@ from .mosaic import MosaicPageArena
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-class BlockLineset(DataHostObject):
-    def __init__(self, textBlock):
-        self._wrTextBlock = weakref.proxy(textBlock) 
-        self.clear()
-
-    def clear(self):
-        self.slEnd = 0
-        self.textRope = []
-        self.sortsRope = []
-        self.lines = []
-
-    def flush(self, typeset):
-        if not typeset.text:
-            return 
-
-        align = typeset.alignVector.copy()
-        text, sorts, wrapSlices = typeset.wrap()
-        typeset.clear()
-        
-        def soff(ws, off=self.slEnd):
-            return slice(ws.start+off, ws.stop+off)
-
-        blk = self._wrTextBlock
-        self.lines.extend(TextBlockLine(blk, soff(ws), text[ws], sorts[ws], align) for ws in wrapSlices)
-
-        self.slEnd += len(sorts)
-        self.textRope.append(text)
-        self.sortsRope.append(sorts)
-
-    def compile(self, typeset):
-        self.flush(typeset)
-
-        text = ''.join(self.textRope)
-        sorts = numpy.concatenate(self.sortsRope)
-        lines = self.lines
-        self.clear()
-
-        return text, sorts, lines
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-class TextBlock(DataHostObject):
-    box = Box.property([0.0, 0.0], dtype='f')
-    fit = True
-    arena = None
-
-    def __init__(self, fit=True, pageSize=None):
-        self.init(fit)
-        self.createArena(pageSize)
-
-    def init(self, fit=True):
-        self.lineset = BlockLineset(self)
-
-        self.fit = fit
-        self.layoutAlg = TextLayoutStrategy()
-
-    @classmethod
-    def createArena(klass, pageSize=None):
-        if klass.arena is None:
-            klass.arena = MosaicPageArena(pageSize)
-
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    def clear(self):
-        self.lineset.clear()
-        self.lines = []
-
-        self.texCoords = []
-        self.pageMap = {}
-        self.meshes = {}
-        self._mapIdxPush = []
-        self._mapIdxPull = []
-
-    def flush(self, typeset):
-        self.lineset.flush(typeset)
-        return self
-
-    def compile(self, typeset=None):
-        text, sorts, lines = self.lineset.compile(typeset)
-        self.text = text
-        self.lines = lines
-        self._arenaMapSorts(sorts)
-        self.layout()
-        return self
-
-    def layout(self, fit=None):
-        if fit is None:
-            fit = self.fit
-        if fit:
-            self.box[:] = self.layoutAlg.fit(self.lines, self.box)
-        self.layoutAlg(self.lines, self.box)
-
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    def getAtColor(self):
-        return AtColorSyntax(self)
-    def setAtColor(self, value):
-        self.color[:] = value
-    color = property(getAtColor, setAtColor)
-
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    def _arenaMapSorts(self, sorts):
-        pageMap, mapIdxPush, mapIdxPull, texCoords = self.arena.texMap(sorts)
-        self.texCoords = texCoords
-
-        self.pageMap = pageMap
-        self._mapIdxPush = mapIdxPush
-        self._mapIdxPull = mapIdxPull
-
-        count = len(mapIdxPull)
-        meshes = dict(
-            vertex = numpy.empty((count, 4, 2), 'l'),
-            color = Color.fromShape((count, 4, 4), 'B'),
-            texture = numpy.empty((count, 4, 2), 'f'),
-            )
-        self.meshes = meshes
-
-        mapped_sorts = sorts[mapIdxPull]
-        meshes['quads'] = mapped_sorts['quad']
-        meshes['color'][:] = mapped_sorts['color']
-        meshes['texture'][:] = texCoords[mapIdxPull]
-
-    def updateVertex(self, lineSlice, lineOffsets):
-        idxPush = self._mapIdxPush[lineSlice]
-
-        meshes = self.meshes
-        meshes['vertex'][idxPush] = meshes['quads'][idxPush] + lineOffsets
-
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class TextLayoutStrategy(AxisLayoutStrategy):
@@ -209,18 +79,156 @@ class TextBlockLine(DataHostObject):
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+class BlockLineset(DataHostObject):
+    _fm_ = OBFactoryMap(BlockLine = TextBlockLine)
+
+    def __init__(self, textBlock):
+        self._wrTextBlock = weakref.proxy(textBlock) 
+        self.clear()
+
+    def clear(self):
+        self.slEnd = 0
+        self.textRope = []
+        self.sortsRope = []
+        self.lines = []
+
+    def flush(self, typeset):
+        if not typeset.text:
+            return 
+
+        align = typeset.alignVector.copy()
+        text, sorts, wrapSlices = typeset.wrap()
+        typeset.clear()
+        
+        off = self.slEnd
+        soff = lambda ws: slice(ws.start+off, ws.stop+off)
+
+        blk = self._wrTextBlock
+        BlockLine = self._fm_.BlockLine
+        self.lines.extend(BlockLine(blk, soff(ws), text[ws], sorts[ws], align) for ws in wrapSlices if text[ws])
+
+        self.slEnd = off + len(sorts)
+        self.textRope.append(text)
+        self.sortsRope.append(sorts)
+
+    def compile(self, typeset=None):
+        if typeset is not None:
+            self.flush(typeset)
+
+        text = ''.join(self.textRope)
+        sorts = numpy.concatenate(self.sortsRope)
+        lines = self.lines
+        self.clear()
+
+        return text, sorts, lines
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class TextBlock(DataHostObject):
+    _fm_ = OBFactoryMap(
+            Lineset = BlockLineset,
+            PageArena = MosaicPageArena,
+            Layout = TextLayoutStrategy,
+            )
+    box = Box.property([0.0, 0.0], dtype='f')
+    fit = False
+    arena = None
+
+    def __init__(self, fit=False, pageSize=None):
+        self.init(fit)
+        self.createArena(pageSize)
+
+    def init(self, fit=True):
+        self.lineset = self._fm_.Lineset(self)
+
+        self.fit = fit
+        self.layoutAlg = self._fm_.Layout()
+
+    @classmethod
+    def createArena(klass, pageSize=None):
+        if klass.arena is None:
+            klass.arena = klass._fm_.PageArena(pageSize)
+
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    def clear(self):
+        self.lineset.clear()
+        self.lines = []
+
+        self.meshes = {}
+        self._mapIdxPush = []
+
+    def flush(self, typeset):
+        self.lineset.flush(typeset)
+        return self
+
+    def compile(self, typeset=None):
+        text, sorts, lines = self.lineset.compile(typeset)
+
+        self.text = text
+        self.lines = lines
+        self._arenaMapSorts(sorts)
+        self.layout()
+        return self
+
+    def layout(self, fit=None):
+        if fit is None:
+            fit = self.fit
+        if fit:
+            self.box[:] = self.layoutAlg.fit(self.lines, self.box)
+        self.layoutAlg(self.lines, self.box)
+
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    def getAtColor(self):
+        return AtColorSyntax(self)
+    def setAtColor(self, value):
+        self.color[:] = value
+    color = property(getAtColor, setAtColor)
+
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    def _arenaMapSorts(self, sorts):
+        pageMap, mapIdxPush, mapIdxPull, texCoords = self.arena.texMap(sorts)
+        self._mapIdxPush = mapIdxPush
+
+        count = len(mapIdxPull)
+        meshes = dict(
+            vertex = numpy.empty((count, 4, 2), 'l'),
+            color = Color.fromShape((count, 4, 4), 'B'),
+            texture = numpy.empty((count, 4, 2), 'f'),
+            pageMap = pageMap,
+            )
+        self.meshes = meshes
+
+        mapped_sorts = sorts[mapIdxPull]
+        meshes['quads'] = mapped_sorts['quad']
+        meshes['color'][:] = mapped_sorts['color']
+        meshes['texture'][:] = texCoords[mapIdxPull]
+
+    def updateVertex(self, lineSlice, lineOffsets):
+        idxPush = self._mapIdxPush[lineSlice]
+
+        meshes = self.meshes
+        meshes['vertex'][idxPush] = meshes['quads'][idxPush] + lineOffsets
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 class AtColorSyntax(object):
     def __init__(self, textBlock):
         self.textBlock = textBlock
 
     def __repr__(self):
         return repr(self[:])
+
     def getName(self): return self[:].name
-    def setName(self, name): self[:].name = name
+    def setName(self, name): 
+        self[:].name = name
     name = property(getName, setName)
 
     def getHex(self): return self[:].hex
-    def setHex(self, hex): self[:].hex = hex
+    def setHex(self, hex): 
+        self[:].hex = hex
     hex = property(getHex, setHex)
 
     def __getitem__(self, idx):

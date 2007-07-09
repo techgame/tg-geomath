@@ -121,15 +121,15 @@ class TypeSetter(DataHostObject):
         self._rope = []
 
     def getSorts(self):
-        if not self.text: 
-            return None
-
         rope = self._rope
         if len(rope) > 1:
             result = numpy.concatenate(self._rope)
             rope = [result]
             self._rope = rope
-        else: result = rope[0]
+        elif rope: 
+            result = rope[0]
+        else:
+            result = self.face.translate('\x00')[:0]
         return result
     sorts = property(getSorts)
 

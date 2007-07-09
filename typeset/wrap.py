@@ -19,7 +19,9 @@ from numpy import asarray
 
 class BasicTextWrapper(object):
     def wrapSlices(self, size, text, offset):
-        return self.wrapPoints(size, text, offset)
+        if len(offset):
+            return self.wrapPoints(size, text, offset)
+        else: return []
     def wrapPoints(self, size, text, offset):
         return [slice(0, len(text))]
 
@@ -52,6 +54,9 @@ class TextWrapper(RETextWrapper):
     re_wrapPoints = re.compile('[\s-]|$')
 
     def wrapSlices(self, size, text, offset):
+        if not len(offset):
+            return
+
         wrapAxis = offset[-1].argmax()
         wrapSize = size[wrapAxis]
         offset = offset[..., wrapAxis]

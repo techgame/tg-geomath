@@ -93,9 +93,6 @@ class BlockLineset(DataHostObject):
         self.lines = []
 
     def flush(self, typeset):
-        if not typeset.text:
-            return 
-
         align = typeset.alignVector.copy()
         text, sorts, wrapSlices = typeset.wrap()
         typeset.clear()
@@ -133,6 +130,7 @@ class TextBlock(DataHostObject):
     box = Box.property([0.0, 0.0], dtype='f')
     fit = False
     arena = None
+    lines = None
 
     def __init__(self, fit=False, pageSize=None):
         self.init(fit)
@@ -153,7 +151,8 @@ class TextBlock(DataHostObject):
 
     def clear(self):
         self.lineset.clear()
-        self.lines = []
+        self.text = None
+        self.lines = None
 
         self.meshes = {}
         self._mapIdxPush = []
@@ -172,6 +171,9 @@ class TextBlock(DataHostObject):
         return self
 
     def layout(self, fit=None):
+        if not self.lines:
+            return
+
         if fit is None:
             fit = self.fit
         if fit:
@@ -204,7 +206,8 @@ class TextBlock(DataHostObject):
         mapped_sorts = sorts[mapIdxPull]
         meshes['quads'] = mapped_sorts['quad']
         meshes['color'][:] = mapped_sorts['color']
-        meshes['texture'][:] = texCoords[mapIdxPull]
+        if len(texCoords):
+            meshes['texture'][:] = texCoords[mapIdxPull]
 
     def updateVertex(self, lineSlice, lineOffsets):
         idxPush = self._mapIdxPush[lineSlice]
@@ -230,6 +233,9 @@ class AtColorSyntax(object):
     def setHex(self, hex): 
         self[:].hex = hex
     hex = property(getHex, setHex)
+
+    def __len__(self):
+        return len(self.textBlock._mapIdxPush)
 
     def __getitem__(self, idx):
         textBlock = self.textBlock

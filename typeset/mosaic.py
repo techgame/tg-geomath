@@ -12,19 +12,24 @@
 
 from bisect import bisect_right
 from collections import defaultdict
+
 import numpy
+
+from TG.metaObserving import OBFactoryMap
+from TG.geomath.data import DataHostObject
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 defaultPageSize = (1024, 1024)
-class MosaicPage(object):
+class MosaicPage(DataHostObject):
+    _fm_ = OBFactoryMap(pageSize=defaultPageSize)
     entryCount = 0
     _sizeToTexCoords = numpy.array([[0.,1.], [1.,1.], [1.,0.], [0.,0.]], 'f')
 
-    def __init__(self, pageSize=defaultPageSize):
-        w, h = pageSize or defaultPageSize
+    def __init__(self, pageSize=None):
+        w, h = pageSize or self._fm_.pageSize
         self.data = numpy.zeros((h, w), 'B')
         
         self.blocks = {}
@@ -146,11 +151,16 @@ class MosaicPage(object):
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class MosaicPageArena(object):
-    def __init__(self, pageSize=defaultPageSize):
+class MosaicPageArena(DataHostObject):
+    _fm_ = OBFactoryMap(
+            Page=MosaicPage, 
+            pageSize=defaultPageSize,
+            )
+
+    def __init__(self, pageSize=None):
         self._entries = {}
         self.pages = []
-        self.pageSize = pageSize or defaultPageSize
+        self.pageSize = pageSize or self._fm_.pageSize
 
     def __contains__(self, sort):
         return self.pageForSort(sort, False)
@@ -245,7 +255,7 @@ class MosaicPageArena(object):
         if pageSize is None:
             pageSize = self.pageSize
 
-        r = MosaicPage(pageSize)
+        r = self._fm_.Page(pageSize)
         self.pages.append(r)
         return r
 

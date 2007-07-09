@@ -67,10 +67,9 @@ class TextWrapper(RETextWrapper):
         iCurr = iLine; offCurr = offLine
         for textSlice in self.wrapPoints(size, text, offset):
             iNext = textSlice.stop-1
-            if iNext >= len(offset):
-                break
-
-            offNext = offset[iNext]
+            if iNext < len(offset):
+                offNext = offset[iNext]
+            else: offNext = offset[-1]
 
             # check to see if the next wrap slice falls off the end
             if (wrapSize < (offNext - offLine)):

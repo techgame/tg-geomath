@@ -16,8 +16,9 @@ from numpy import zeros, empty, recarray
 from TG.metaObserving import OBFactoryMap
 from TG.geomath.data.color import Color, DataHostObject
 from TG.geomath.data.vector import Vector, DataHostObject
-from .wrap import wrapModeMap
 
+from .typeface import dtype_sorts
+from .wrap import wrapModeMap
 from .textblock import TextBlock
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -35,6 +36,8 @@ class TypeSetter(DataHostObject):
     _fm_ = OBFactoryMap(
             TextBlock = TextBlock,
             wrapModes = wrapModeMap,
+
+            emptySorts = numpy.empty(0, dtype_sorts)
             )
 
     offset = 0
@@ -129,7 +132,7 @@ class TypeSetter(DataHostObject):
         elif rope: 
             result = rope[0]
         else:
-            result = self.face.translate('\x00')[:0]
+            result = self._fm_.emptySorts
         return result
     sorts = property(getSorts)
 

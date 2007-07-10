@@ -25,29 +25,76 @@ from .textblock import TextBlock
 #~ Constants / Variiables / Etc. 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-_alignmentReverse = {0.0: 'left', 0.5: 'center', 1.0: 'right'}
+_alignmentReverse = {(0, 0.0): 'left', (1, 0.0): "bottom", (0, 0.5): 'center', (1, 0.5): 'center', (0, 1.0): 'right', (1, 1.0): 'top'}
 _alignmentLookup = {'left':0.0, 'center':0.5, 'right':1.0, 'top':1.0, 'bottom':0.0}
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class TypeSetter(DataHostObject):
+class TypesetSection(DataHostObject):
     _fm_ = OBFactoryMap(
             TextBlock = TextBlock,
             wrapModes = wrapModeMap,
+            emptySorts = numpy.empty(0, dtype_sorts))
 
+    align = Vector.property([0.0, 1.0])
+    wrapSize = Vector.property([0,0])
+    wrapMode = 'line'
+
+    def __nonzero__(self):
+        return self.end is not None
+
+    start = None
+    end = None
+    def getTextRange(self):
+        return slice(self.start, self.end or self.start)
+    textRange = property(getTextRange)
+
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    def getFormat(self):
+        return dict(align=self.align.copy(), wrapMode=self.wrapMode, wrapSize=self.wrapSize.copy())
+    format = property(getFormat)
+
+    def attr(self, *args, **kw):
+        if kw:
+            args += (kw.items(),)
+        for attrs in args:
+            for n, v in attrs:
+                setattr(self, n, v)
+
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    def wrap(self, text, sorts):
+        wrapMode = self.wrapMode
+        if not hasattr(wrapMode, 'wrapSlices'):
+            if isinstance(wrapMode, basestring):
+                wrapMode = wrapMode.lower()
+            wrapMode = self._fm_.wrapModes[wrapMode]
+
+        return wrapMode.wrapSlices(self.wrapSize, self.textRange, text, sorts['offset'])
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class TypeSetter(DataHostObject):
+    _fm_ = OBFactoryMap(
+            TextBlock = TextBlock,
+            Section = TypesetSection,
+            wrapModes = wrapModeMap,
             emptySorts = numpy.empty(0, dtype_sorts)
             )
 
-    offset = 0
+    # glyph and spacing options
     face = None
     kern = False
     color = Color.property('#ff')
 
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
     def __init__(self, **kw):
-        if kw: self.attr(kw.items())
         self.clear()
+        if kw: self.attr(kw.items())
 
     def attr(self, *args, **kw):
         if kw:
@@ -67,97 +114,151 @@ class TypeSetter(DataHostObject):
         self._block = block
     block = property(getBlock, setBlock)
 
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    def getBox(self): return self.block.box
+    def setBox(self, box): self.block.box = box
+    box = property(getBox, setBox)
 
-    alignVector = Vector.property([0.0, 1.0])
-    def getAlign(self, axis=0):
-        aw = self.alignVector[axis]
-        return _alignmentReverse.get(self._align, self._align)
-    def setAlign(self, align, axis=0):
-        aw = _alignmentLookup.get(align, None)
-        if aw is None:
-            aw = float(align)
-        if self.alignVector[axis] != aw:
-            self.flush()
-            self.alignVector[axis] = aw
-    align = property(getAlign, setAlign)
-
-    def getVerticalAlign(self):
-        return self.getAlign(1)
-    def setVerticalAlign(self, align, axis=0):
-        self.setAlign(align, 1)
-    valign = verticalAlign = property(getVerticalAlign, setVerticalAlign)
+    def getFit(self): return self.block.fit
+    def setFit(self, fit): self.block.fit = fit
+    fit = property(getFit, setFit)
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    def update(self):
+        return self.block.update(self)
+
+    def compile(self):
+        return self.text, self.sorts, self.sectionList
+
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    _sectionList = None
+    def getSectionList(self):
+        return self._sectionList
+    def setSectionList(self, sectionList):
+        self._sectionList = sectionList
+    def delSectionList(self):
+        self._sectionList = []
+        self.newSection()
+    sectionList = property(getSectionList, setSectionList, delSectionList)
+
+    def getSection(self):
+        return self.sectionList[-1]
+    section = property(getSection)
+
+    def newSection(self, *args, **kw):
+        sectionList = self.sectionList
+        if sectionList:
+            section = sectionList[-1]
+            if not section:
+                # current section is "empty", return it
+                section.attr(*args, **kw)
+                return section
+
+        else: section = None
+
+        newSection = self._fm_.Section()
+        newSection.start = len(self.text)
+
+        if section is not None:
+            newSection.attr(section.format.items())
+        newSection.attr(*args, **kw)
+
+        sectionList.append(newSection)
+        return newSection
+
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    #~ File-like write typesetting
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    _typsetOffset = 0
+    _rope = None
+    text = u''
+
+    def clear(self):
+        self.delSectionList()
+        self._typsetOffset = 0
+        self._rope = []
+        self._sorts = self._fm_.emptySorts
+        self.text = u''
 
     softspace = False
     def write(self, text, **kw):
         if kw: self.attr(kw.items())
 
-        if not text:
-            return 
-
+        if not text: return 
         if not isinstance(text, unicode):
             text = unicode(text)
 
-        face = self.face
-        sorts = face.translate(text)
+        sorts = self.face.translate(text)
+        sorts['color'] = self.color
 
         advance = sorts['advance']
         offset = sorts['offset']
         if self.kern:
-            face.kern(sorts, advance)
+            self.face.kern(sorts, advance)
 
-        offset[0] += self.offset
+        offset[0] += self._typsetOffset
         numpy.add(offset[:-1], advance[:-1], offset[1:])
-        self.offset = offset[-1] + advance[-1]
+        self._typsetOffset = offset[-1] + advance[-1]
 
-        sorts['color'] = self.color
-
-        self.text += text
+        curText = self.text
+        sl = slice(len(curText), len(curText)+len(text))
+        self.text = curText + text
         self._rope.append(sorts)
+
+        self.section.end = len(self.text)
+        return sl
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    def clear(self):
-        self.text = u''
-        self._rope = []
-
+    _sorts = _fm_.emptySorts
     def getSorts(self):
+        sorts = self._sorts
         rope = self._rope
-        if len(rope) > 1:
-            result = numpy.concatenate(self._rope)
-            rope = [result]
-            self._rope = rope
-        elif rope: 
-            result = rope[0]
-        else:
-            result = self._fm_.emptySorts
-        return result
+        if len(rope):
+            rope.insert(0, sorts)
+            sorts = numpy.concatenate(rope)
+            del rope[:]
+            self._sorts = sorts
+        return sorts
     sorts = property(getSorts)
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    wrapMode = None
-    wrapSize = Vector.property([0,0])
-    def wrap(self):
-        text = self.text
-        wrapMode = self.wrapMode
-        wrapSize = self.wrapSize
-
-        if not hasattr(wrapMode, 'wrapSlices'):
-            if isinstance(wrapMode, basestring):
-                wrapMode = wrapMode.lower()
-            wrapMode = self._fm_.wrapModes[wrapMode]()
-
-        sorts = self.sorts
-        wrapSlices = wrapMode.wrapSlices(wrapSize, text, sorts['offset'])
-        return text, sorts, wrapSlices
-
+    #~ Typesetting Style
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    def flush(self):
-        return self.block.flush(self)
-    def compile(self):
-        return self.block.compile(self)
+    def getAlign(self, axis=0):
+        aw = self.section.align[axis]
+        return _alignmentReverse.get((axis, self._align), self._align)
+    def setAlign(self, align, axis=0):
+        aw = _alignmentLookup.get(align, None)
+        if aw is None:
+            aw = float(align)
+        section = self.newSection()
+        section.align[axis] = aw
+    align = property(getAlign, setAlign)
+
+    def getVerticalAlign(self):
+        return self.getAlign(1)
+    def setVerticalAlign(self, align):
+        self.setAlign(align, 1)
+    valign = verticalAlign = property(getVerticalAlign, setVerticalAlign)
+
+    def getWrapMode(self):
+        return self.section.wrapMode
+    def setWrapMode(self, wrapMode):
+        self.newSection(wrapMode=wrapMode)
+    wrapMode = property(getWrapMode, setWrapMode)
+
+    def getWrapSize(self):
+        return self.section.wrapSize
+    def setWrapSize(self, wrapSize, all=False):
+        if all:
+            for section in self.sectionList:
+                section.wrapSize = wrapSize
+        else:
+            self.newSection(wrapSize=wrapSize)
+    wrapSize = property(getWrapSize, setWrapSize)
+
 

@@ -22,7 +22,7 @@ from TG.geomath.data import DataHostObject
 #~ Definitions 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-defaultPageSize = (1024, 1024)
+defaultPageSize = (512, 512)
 class MosaicPage(DataHostObject):
     _fm_ = OBFactoryMap(pageSize=defaultPageSize)
     entryCount = 0

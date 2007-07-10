@@ -34,12 +34,12 @@ class TextLayoutStrategy(AxisLayoutStrategy):
 class TextBlockLine(DataHostObject):
     tbox = Box.property([0.0, 0.0], dtype='f')
     box = Box.property([0.0, 0.0], dtype='f')
+    dirty = True
 
     def __init__(self, block, slice, text, sorts, align):
         self.block = block
         self.align = align
         self.slice = slice
-        self.text = text
         self.init(sorts)
 
     def init(self, sorts):
@@ -50,7 +50,6 @@ class TextBlockLine(DataHostObject):
         ascender, descender = maxSort['ascenders']
 
         off = sorts['offset']
-        self.linearOffset = off
         adv = sorts['advance']
         width = off[-1]-off[0] + adv[-1]
         self._linearOffsetStart = off[0]
@@ -68,64 +67,21 @@ class TextBlockLine(DataHostObject):
         self.minSize = size
 
     def getOffset(self):
-        delta = self.box.p0 - self.tbox.p0 - self._linearOffsetStart
-        return self.linearOffset + delta
+        return self.box.p0 - self.tbox.p0 - self._linearOffsetStart
     offset = property(getOffset)
 
     def layoutInBox(self, box):
         align = self.align
         self.box.at[align] = box.at[align]
-        self.block.updateVertex(self.slice, self.offset)
-
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-class BlockLineset(DataHostObject):
-    _fm_ = OBFactoryMap(BlockLine = TextBlockLine)
-
-    def __init__(self, textBlock):
-        self._wrTextBlock = weakref.proxy(textBlock) 
-        self.clear()
-
-    def clear(self):
-        self.slEnd = 0
-        self.textRope = []
-        self.sortsRope = []
-        self.lines = []
-
-    def flush(self, typeset):
-        align = typeset.alignVector.copy()
-        text, sorts, wrapSlices = typeset.wrap()
-        typeset.clear()
-        
-        off = self.slEnd
-        soff = lambda ws: slice(ws.start+off, ws.stop+off)
-
-        blk = self._wrTextBlock
-        BlockLine = self._fm_.BlockLine
-        self.lines.extend(BlockLine(blk, soff(ws), text[ws], sorts[ws], align) for ws in wrapSlices if text[ws])
-
-        self.slEnd = off + len(sorts)
-        self.textRope.append(text)
-        self.sortsRope.append(sorts)
-
-    def compile(self, typeset=None):
-        if typeset is not None:
-            self.flush(typeset)
-
-        text = ''.join(self.textRope)
-        sorts = numpy.concatenate(self.sortsRope)
-        lines = self.lines
-        self.clear()
-
-        return text, sorts, lines
+        self.dirty = True
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class TextBlock(DataHostObject):
     _fm_ = OBFactoryMap(
-            Lineset = BlockLineset,
             PageArena = MosaicPageArena,
             Layout = TextLayoutStrategy,
+            BlockLine = TextBlockLine,
             )
     box = Box.property([0.0, 0.0], dtype='f')
     fit = False
@@ -137,8 +93,7 @@ class TextBlock(DataHostObject):
         self.createArena(pageSize)
 
     def init(self, fit=True):
-        self.lineset = self._fm_.Lineset(self)
-
+        self.clear()
         self.fit = fit
         self.layoutAlg = self._fm_.Layout()
 
@@ -150,23 +105,23 @@ class TextBlock(DataHostObject):
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def clear(self):
-        self.lineset.clear()
-        self.text = None
-        self.lines = None
-
+        self.lines = []
         self.meshes = {}
         self._mapIdxPush = []
 
-    def flush(self, typeset):
-        self.lineset.flush(typeset)
-        return self
+    def update(self, typeset):
+        text, sorts, sectionList = typeset.compile()
 
-    def compile(self, typeset=None):
-        text, sorts, lines = self.lineset.compile(typeset)
+        self.lines = []
+        add = self.lines.append
+        BlockLine = self._fm_.BlockLine
+        for section in sectionList:
+            for ws in section.wrap(text, sorts):
+                if text[ws]:
+                    add(BlockLine(self, ws, text[ws], sorts[ws], section.align))
 
-        self.text = text
-        self.lines = lines
         self._arenaMapSorts(sorts)
+
         self.layout()
         return self
 
@@ -190,15 +145,20 @@ class TextBlock(DataHostObject):
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+    _sorts = None
     def _arenaMapSorts(self, sorts):
+        if sorts is self._sorts:
+            return 
+        self._sorts = sorts
+
         pageMap, mapIdxPush, mapIdxPull, texCoords = self.arena.texMap(sorts)
         self._mapIdxPush = mapIdxPush
 
         count = len(mapIdxPull)
         meshes = dict(
-            vertex = numpy.empty((count, 4, 2), 'l'),
+            vertex = numpy.zeros((count, 4, 2), 'l'),
             color = Color.fromShape((count, 4, 4), 'B'),
-            texture = numpy.empty((count, 4, 2), 'f'),
+            texture = numpy.zeros((count, 4, 2), 'f'),
             pageMap = pageMap,
             )
         self.meshes = meshes
@@ -209,11 +169,23 @@ class TextBlock(DataHostObject):
         if len(texCoords):
             meshes['texture'][:] = texCoords[mapIdxPull]
 
-    def updateVertex(self, lineSlice, lineOffsets):
-        idxPush = self._mapIdxPush[lineSlice]
+    def apply(self):
+        self.applyLayout()
 
-        meshes = self.meshes
-        meshes['vertex'][idxPush] = meshes['quads'][idxPush] + lineOffsets
+    def applyLayout(self):
+        for line in self.lines:
+            if not line.dirty:
+                break
+
+            idxPush = self._mapIdxPush[line.slice]
+
+            meshes = self.meshes
+            vertex = meshes['vertex']
+            vertex[idxPush] = meshes['quads'][idxPush] 
+            vertex[idxPush] += self._sorts['offset'][line.slice]
+            vertex[idxPush] += line.offset
+
+            line.dirty = False
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

@@ -18,22 +18,21 @@ from numpy import asarray
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class BasicTextWrapper(object):
-    def wrapSlices(self, size, text, offset):
+    def wrapSlices(self, size, textRange, text, offset):
         if len(offset):
-            return self.wrapPoints(size, text, offset)
+            return self.wrapPoints(size, textRange, text, offset)
         else: return []
-    def wrapPoints(self, size, text, offset):
-        return [slice(0, len(text))]
+    def wrapPoints(self, size, textRange, text, offset):
+        return [textRange]
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class RETextWrapper(BasicTextWrapper):
     re_wrapPoints = re.compile('$', re.MULTILINE)
 
-    def wrapPoints(self, size, text, offset):
-        iterMatches = self.re_wrapPoints.finditer(text)
-        i0 = 0
-        i1 = None
+    def wrapPoints(self, size, textRange, text, offset):
+        i0 = textRange.start; i1 = textRange.stop
+        iterMatches = self.re_wrapPoints.finditer(text, i0, i1)
         for match in iterMatches:
             i1 = match.end() + 1
             if i1-i0 <= 1 and i1>len(text):
@@ -51,9 +50,9 @@ class LineTextWrapper(RETextWrapper):
 
 class TextWrapper(RETextWrapper):
     lineWraps = '\n\r'
-    re_wrapPoints = re.compile('[\s-]|$')
+    re_wrapPoints = re.compile('[\s-]|$')#, re.MULTILINE)
 
-    def wrapSlices(self, size, text, offset):
+    def wrapSlices(self, size, textRange, text, offset):
         if not len(offset):
             return
 
@@ -63,9 +62,9 @@ class TextWrapper(RETextWrapper):
 
         lineWraps = self.lineWraps
 
-        iLine = 0; offLine = offset[iLine]
+        iLine = textRange.start; offLine = offset[iLine]
         iCurr = iLine; offCurr = offLine
-        for textSlice in self.wrapPoints(size, text, offset):
+        for textSlice in self.wrapPoints(size, textRange, text, offset):
             iNext = textSlice.stop-1
             if iNext < len(offset):
                 offNext = offset[iNext]
@@ -78,23 +77,20 @@ class TextWrapper(RETextWrapper):
 
             # check to see if we have a linewrap at the current position
             if text[iNext-1] in lineWraps:
-                yield slice(iLine, iNext)
+                if iLine < iNext:
+                    yield slice(iLine, iNext)
                 iLine = iNext; offLine = offNext
 
             iCurr = iNext; offCurr = offNext
-
-        iNext = len(text)
-        if iLine < iNext:
-            yield slice(iLine, iNext)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Wrap Mode Map
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 wrapModeMap = {
-    'none': BasicTextWrapper,
-    'line': LineTextWrapper,
-    'text': TextWrapper,
+    'none': BasicTextWrapper(),
+    'line': LineTextWrapper(),
+    'text': TextWrapper(),
     }
 wrapModeMap[None] = wrapModeMap['none']
 wrapModeMap['basic'] = wrapModeMap['none']

@@ -182,36 +182,10 @@ class MosaicPageArena(DataHostObject):
             pageMap[page].append(i)
             texCoords[i] = tc
 
+        for key, pim in pageMap.items():
+            pageMap[key] = numpy.array(pim, 'L')
+
         return pageMap, texCoords
-
-    def texMap(self, sorts, texCoords=None):
-        pageMap, texCoords = self.texCoords(sorts, texCoords)
-
-        pimNone = pageMap.pop(None, None)
-        pageMapItems = pageMap.items()
-        count = sum(len(pim) for page, pim in pageMapItems)
-        if pimNone: count += 1
-
-        mapIdxPush = numpy.empty(len(sorts), 'h')
-        mapIdxPull = numpy.empty(count, 'h')
-        
-        # All None page entries take position zero
-        i0 = i1 = 0
-        if pimNone is not None:
-            i1 = 1
-            pageMap[None] = slice(i0, i1)
-            mapIdxPush[pimNone] = i0
-            mapIdxPull[i0:i1] = pimNone[:i1-i0]
-            i0 = i1
-
-        for page, pim in pageMapItems:
-            i1 = i0 + len(pim)
-            pageMap[page] = slice(i0, i1)
-            mapIdxPush[pim] = range(i0, i1)
-            mapIdxPull[i0:i1] = pim
-            i0 = i1
-
-        return pageMap, mapIdxPush, mapIdxPull, texCoords
 
     def pageForSort(self, sort, create=True):
         sortkey = int(sort['hidx'])

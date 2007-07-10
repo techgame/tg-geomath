@@ -39,6 +39,7 @@ class TextBlockLine(DataHostObject):
         self.block = block
         self.align = align
         self.slice = slice
+        self.text = text 
         self.init(sorts)
 
     def init(self, sorts):
@@ -139,11 +140,15 @@ class TextBlock(DataHostObject):
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    def getAtColor(self):
-        return AtColorSyntax(self)
-    def setAtColor(self, value):
-        self.color[:] = value
-    color = property(getAtColor, setAtColor)
+    def getSourceColor(self):
+        return self._sorts['color']
+    srcColor = sourceColor = property(getSourceColor)
+
+    def getColor(self):
+        return self.meshes['color']
+    def setColor(self, value):
+        self.meshes['color'][:] = value
+    color = property(getColor, setColor)
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -153,74 +158,73 @@ class TextBlock(DataHostObject):
             return 
         self._sorts = sorts
 
-        pageMap, mapIdxPush, mapIdxPull, texCoords = self.arena.texMap(sorts)
-        self._mapIdxPush = mapIdxPush
-        if len(mapIdxPull):
-            texCoords = texCoords[mapIdxPull]
+        pageMap, texCoords = self.arena.texCoords(sorts)
+        self.pageMap = pageMap
 
-        mapped_sorts = sorts[mapIdxPull]
-        count = len(mapIdxPull)
+        self._mask = numpy.ones(len(sorts), 'B')
+
+        color = Color.fromShape((len(sorts), 4, 4), 'B')
+        color[:] = sorts['color']
+
         meshes = dict(
-            quads = mapped_sorts['quad'].copy(),
-            color = Color.fromShape((count, 4, 4), 'B'),
-            texture = texCoords,
-            pageMap = pageMap,
-            )
-        meshes['vertex'] = meshes['quads'].copy()
-        meshes['color'][:] = mapped_sorts['color']
+            vertex = sorts['quad'].copy(),
+            texCoords = texCoords,
+            color = color,
+            pageIdxMap = {},)
+
         self.meshes = meshes
+        self._updatePageIdxMap(None)
+
+    def _updatePageIdxMap(self, mask):
+        addOuter = numpy.add.outer
+        ar4 = numpy.arange(4, dtype='H')
+
+        pageIdxMap = self.meshes['pageIdxMap']
+        if mask is None:
+            for page, pim in self.pageMap.iteritems():
+                if page is not None:
+                    pageIdxMap[page] = addOuter(4*pim, ar4)
+        else:
+            for page, pim in self.pageMap.iteritems():
+                if page is not None:
+                    mpim = pim.compress(mask[pim])
+                    entry = pageIdxMap[page]
+                    entry[:len(mpim)] = addOuter(4*mpim, ar4)
+                    entry[len(mpim):] = 0
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def apply(self):
-        if self._layoutDirty:
-            self._applyLayout()
-            self._layoutDirty = False
+        if not self._layoutDirty:
+            return False
+
+        self._applyLayout()
+        self._clipLines()
+        self._layoutDirty = False
+        return True
 
     def _applyLayout(self):
+        meshes = self.meshes
+        sorts = self._sorts
+
         for line in self.lines:
-            idxPush = self._mapIdxPush[line.slice]
-
-            meshes = self.meshes
+            sl = line.slice
+            sl_sorts = sorts[sl]
             vertex = meshes['vertex']
-            vertex[idxPush] = meshes['quads'][idxPush] 
-            vertex[idxPush] += self._sorts['offset'][line.slice]
-            vertex[idxPush] += line.offset
+            vertex[sl] = sl_sorts['quad']
+            vertex[sl] += sl_sorts['offset']
+            vertex[sl] += line.offset
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    def _clipLines(self):
+        if (self.box.size == 0).all():
+            return False
 
-class AtColorSyntax(object):
-    def __init__(self, textBlock):
-        self.textBlock = textBlock
+        boxYv = self.box.yv
+        for line in self.lines:
+            sl = line.slice
+            v = (-1,1)*(boxYv - line.box.yv)
+            self._mask[sl] = (v >= 0).all()
 
-    def __repr__(self):
-        return repr(self[:])
-
-    def getName(self): return self[:].name
-    def setName(self, name): 
-        self[:].name = name
-    name = property(getName, setName)
-
-    def getHex(self): return self[:].hex
-    def setHex(self, hex): 
-        self[:].hex = hex
-    hex = property(getHex, setHex)
-
-    def __len__(self):
-        return len(self.textBlock._mapIdxPush)
-
-    def __getitem__(self, idx):
-        textBlock = self.textBlock
-        idxPush = textBlock._mapIdxPush[idx]
-        color = textBlock.meshes['color']
-        return color[idxPush]
-
-    def __setitem__(self, idx, value):
-        value = Color(value)
-        value.shape = ((1,1,) + value.shape)[-3:]
-
-        textBlock = self.textBlock
-        idxPush = textBlock._mapIdxPush[idx]
-        color = textBlock.meshes['color']
-        color[idxPush] = value
+        self._updatePageIdxMap(self._mask)
+        return True
 

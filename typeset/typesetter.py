@@ -38,7 +38,7 @@ class TypesetSection(DataHostObject):
             wrapModes = wrapModeMap,
             emptySorts = numpy.empty(0, dtype_sorts))
 
-    align = Vector.property([0.0, 1.0])
+    align = Vector.property([0.0, 0.0])
     wrapSize = Vector.property([0,0])
     wrapMode = 'line'
 

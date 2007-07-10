@@ -34,7 +34,6 @@ class TextLayoutStrategy(AxisLayoutStrategy):
 class TextBlockLine(DataHostObject):
     tbox = Box.property([0.0, 0.0], dtype='f')
     box = Box.property([0.0, 0.0], dtype='f')
-    dirty = True
 
     def __init__(self, block, slice, text, sorts, align):
         self.block = block
@@ -73,7 +72,6 @@ class TextBlockLine(DataHostObject):
     def layoutInBox(self, box):
         align = self.align
         self.box.at[align] = box.at[align]
-        self.dirty = True
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -126,6 +124,7 @@ class TextBlock(DataHostObject):
         self.layout()
         return self
 
+    _layoutDirty = False
     def layout(self, fit=None):
         if not self.lines:
             return
@@ -134,7 +133,9 @@ class TextBlock(DataHostObject):
             fit = self.fit
         if fit:
             self.box[:] = self.layoutAlg.fit(self.lines, self.box)
+
         self.layoutAlg(self.lines, self.box)
+        self._layoutDirty = True
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -154,30 +155,30 @@ class TextBlock(DataHostObject):
 
         pageMap, mapIdxPush, mapIdxPull, texCoords = self.arena.texMap(sorts)
         self._mapIdxPush = mapIdxPush
-
-        count = len(mapIdxPull)
-        meshes = dict(
-            vertex = numpy.zeros((count, 4, 2), 'l'),
-            color = Color.fromShape((count, 4, 4), 'B'),
-            texture = numpy.zeros((count, 4, 2), 'f'),
-            pageMap = pageMap,
-            )
-        self.meshes = meshes
+        if len(mapIdxPull):
+            texCoords = texCoords[mapIdxPull]
 
         mapped_sorts = sorts[mapIdxPull]
-        meshes['quads'] = mapped_sorts['quad']
+        count = len(mapIdxPull)
+        meshes = dict(
+            quads = mapped_sorts['quad'].copy(),
+            color = Color.fromShape((count, 4, 4), 'B'),
+            texture = texCoords,
+            pageMap = pageMap,
+            )
+        meshes['vertex'] = meshes['quads'].copy()
         meshes['color'][:] = mapped_sorts['color']
-        if len(texCoords):
-            meshes['texture'][:] = texCoords[mapIdxPull]
+        self.meshes = meshes
+
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def apply(self):
-        self.applyLayout()
+        if self._layoutDirty:
+            self._applyLayout()
+            self._layoutDirty = False
 
-    def applyLayout(self):
+    def _applyLayout(self):
         for line in self.lines:
-            if not line.dirty:
-                break
-
             idxPush = self._mapIdxPush[line.slice]
 
             meshes = self.meshes
@@ -185,8 +186,6 @@ class TextBlock(DataHostObject):
             vertex[idxPush] = meshes['quads'][idxPush] 
             vertex[idxPush] += self._sorts['offset'][line.slice]
             vertex[idxPush] += line.offset
-
-            line.dirty = False
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

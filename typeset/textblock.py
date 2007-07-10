@@ -108,6 +108,7 @@ class TextBlock(DataHostObject):
         self.lines = []
         self.meshes = {}
         self._mapIdxPush = []
+        self._sorts = None
 
     def update(self, typeset):
         text, sorts, sectionList = typeset.compile()

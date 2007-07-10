@@ -138,8 +138,11 @@ class TypeSetter(DataHostObject):
     def setSectionList(self, sectionList):
         self._sectionList = sectionList
     def delSectionList(self):
+        if self._sectionList:
+            format = self.section.format
+        else: format = {}
         self._sectionList = []
-        self.newSection()
+        self.newSection(**format)
     sectionList = property(getSectionList, setSectionList, delSectionList)
 
     def getSection(self):
@@ -176,11 +179,12 @@ class TypeSetter(DataHostObject):
     text = u''
 
     def clear(self):
-        self.delSectionList()
         self._typsetOffset = 0
         self._rope = []
-        self._sorts = self._fm_.emptySorts
         self.text = u''
+        self._sorts = self._fm_.emptySorts
+
+        self.delSectionList()
 
     softspace = False
     def write(self, text, **kw):

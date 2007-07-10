@@ -83,6 +83,10 @@ class TextWrapper(RETextWrapper):
 
             iCurr = iNext; offCurr = offNext
 
+        iNext = textRange.stop
+        if iLine < iNext:
+            yield slice(iLine, iNext)
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Wrap Mode Map
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

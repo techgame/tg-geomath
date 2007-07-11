@@ -87,13 +87,14 @@ class TextBlock(DataHostObject):
     arena = None
     lines = None
 
-    def __init__(self, fit=False, pageSize=None):
-        self.init(fit)
+    def __init__(self, fit=False, clip=True, pageSize=None):
+        self.init(fit, clip)
         self.createArena(pageSize)
 
-    def init(self, fit=True):
+    def init(self, fit, clip):
         self.clear()
         self.fit = fit
+        self.clip = clip
         self.layoutAlg = self._fm_.Layout()
 
     @classmethod
@@ -120,7 +121,9 @@ class TextBlock(DataHostObject):
                 if text[ws]:
                     add(BlockLine(self, ws, text[ws], sorts[ws], section.align))
 
-        self._arenaMapSorts(sorts)
+        if sorts is not self._sorts:
+            self._sorts = sorts
+            self._arenaMapSorts(sorts)
 
         self.layout()
         return self
@@ -154,10 +157,6 @@ class TextBlock(DataHostObject):
 
     _sorts = None
     def _arenaMapSorts(self, sorts):
-        if sorts is self._sorts:
-            return 
-        self._sorts = sorts
-
         pageMap, texCoords = self.arena.texCoords(sorts)
         self.pageMap = pageMap
 
@@ -173,24 +172,27 @@ class TextBlock(DataHostObject):
             pageIdxMap = {},)
 
         self.meshes = meshes
-        self._updatePageIdxMap(None)
+        self._updatePageIdxMap(False)
 
-    def _updatePageIdxMap(self, mask):
+    def _updatePageIdxMap(self, useMask=True):
         addOuter = numpy.add.outer
         ar4 = numpy.arange(4, dtype='H')
 
         pageIdxMap = self.meshes['pageIdxMap']
-        if mask is None:
-            for page, pim in self.pageMap.iteritems():
-                if page is not None:
-                    pageIdxMap[page] = addOuter(4*pim, ar4)
-        else:
+        if useMask:
+            mask = self._mask
             for page, pim in self.pageMap.iteritems():
                 if page is not None:
                     mpim = pim.compress(mask[pim])
                     entry = pageIdxMap[page]
                     entry[:len(mpim)] = addOuter(4*mpim, ar4)
                     entry[len(mpim):] = 0
+        else:
+            for page, pim in self.pageMap.iteritems():
+                if page is not None:
+                    pageIdxMap[page] = addOuter(4*pim, ar4)
+
+        return pageIdxMap
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -199,32 +201,29 @@ class TextBlock(DataHostObject):
             return False
 
         self._applyLayout()
-        self._clipLines()
-        self._layoutDirty = False
+        if self.clip:
+            self._clipLines()
         return True
 
     def _applyLayout(self):
         meshes = self.meshes
         sorts = self._sorts
+        vertex = meshes['vertex']
 
         for line in self.lines:
             sl = line.slice
             sl_sorts = sorts[sl]
-            vertex = meshes['vertex']
             vertex[sl] = sl_sorts['quad']
             vertex[sl] += sl_sorts['offset']
             vertex[sl] += line.offset
 
     def _clipLines(self):
-        if (self.box.size == 0).all():
-            return False
-
         boxYv = self.box.yv
         for line in self.lines:
             sl = line.slice
             v = (-1,1)*(boxYv - line.box.yv)
             self._mask[sl] = (v >= 0).all()
 
-        self._updatePageIdxMap(self._mask)
+        self._updatePageIdxMap(True)
         return True
 

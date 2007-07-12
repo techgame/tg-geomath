@@ -87,7 +87,7 @@ class TextBlock(DataHostObject):
     arena = None
     lines = None
 
-    def __init__(self, fit=False, clip=True, pageSize=None):
+    def __init__(self, fit=False, clip=False, pageSize=None):
         self.init(fit, clip)
         self.createArena(pageSize)
 

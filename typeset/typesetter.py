@@ -118,14 +118,15 @@ class TypeSetter(DataHostObject):
     def setBox(self, box): self.block.box = box
     box = property(getBox, setBox)
 
+    def getClip(self): return self.block.clip
+    def setClip(self, clip): self.block.clip = clip
+    clip = property(getClip, setClip)
+
     def getFit(self): return self.block.fit
     def setFit(self, fit): self.block.fit = fit
     fit = property(getFit, setFit)
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    def update(self):
-        return self.block.update(self)
 
     def compile(self):
         return self.text, self.sorts, self.sectionList
@@ -185,6 +186,7 @@ class TypeSetter(DataHostObject):
         self._sorts = self._fm_.emptySorts
 
         self.delSectionList()
+        self.invalidate()
 
     softspace = False
     def write(self, text, **kw):
@@ -212,6 +214,7 @@ class TypeSetter(DataHostObject):
         self._rope.append(sorts)
 
         self.section.end = len(self.text)
+        self.invalidate()
         return sl
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -259,10 +262,15 @@ class TypeSetter(DataHostObject):
         return self.section.wrapSize
     def setWrapSize(self, wrapSize, all=False):
         if all:
+            self.invalidate()
             for section in self.sectionList:
                 section.wrapSize = wrapSize
+            self.invalidate()
         else:
             self.newSection(wrapSize=wrapSize)
     wrapSize = property(getWrapSize, setWrapSize)
+
+    def invalidate(self):
+        self.block.invalidate()
 
 

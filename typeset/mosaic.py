@@ -27,6 +27,7 @@ class MosaicPage(DataHostObject):
     _fm_ = OBFactoryMap(pageSize=defaultPageSize)
     entryCount = 0
     _sizeToTexCoords = numpy.array([[0.,1.], [1.,1.], [1.,0.], [0.,0.]], 'f')
+    coordScale = 1
 
     def __init__(self, pageSize=None):
         w, h = pageSize or self._fm_.pageSize
@@ -116,8 +117,10 @@ class MosaicPage(DataHostObject):
         self.data[by:by+h, bx:bx+w] = bmp
         self.entryCount += 1
 
-        coords = ((w,h) * self._sizeToTexCoords) + (bx, by)
-        return self, coords
+        return self, self.texCoordsFor(bx, by, w, h)
+
+    def texCoordsFor(self, bx, by, w, h):
+        return ((w,h) * self._sizeToTexCoords) + (bx, by)
 
     def dataAt(self, coords):
         ((x0,y0), (x1, y1)) = coords[[3, 1]]

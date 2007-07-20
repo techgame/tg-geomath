@@ -109,6 +109,11 @@ class TextBlock(DataHostObject):
         self.meshes = {}
         self._mapIdxPush = []
         self._sorts = None
+        self.invalidate()
+
+    dirty = False
+    def invalidate(self):
+        self.dirty = True
 
     def update(self, typeset):
         text, sorts, sectionList = typeset.compile()
@@ -126,6 +131,7 @@ class TextBlock(DataHostObject):
             self._arenaMapSorts(sorts)
 
         self.layout()
+        self.dirty = False
         return self
 
     _layoutDirty = False

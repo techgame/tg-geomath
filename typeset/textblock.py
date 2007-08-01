@@ -105,7 +105,10 @@ class TextBlock(DataHostObject):
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def __nonzero__(self):
-        return bool(self._sorts)
+        sorts = self._sorts
+        if sorts is None: 
+            return False
+        return len(sorts) > 0
 
     def clear(self):
         self.lines = []

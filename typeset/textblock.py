@@ -104,6 +104,9 @@ class TextBlock(DataHostObject):
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+    def __nonzero__(self):
+        return bool(self._sorts)
+
     def clear(self):
         self.lines = []
         self.meshes = {}

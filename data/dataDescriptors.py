@@ -52,19 +52,22 @@ class DataProperty(object):
         data = self.data
         if data is not None:
             result = data.copy()
-            self.__set__(obInst, result)
+            self.__set_factory__(obInst, result)
             return (True, result)
+    def set(self, obInst, value):
+        setattr(obInst, self.private, value)
+        self._modified_(obInst)
+
     def __set__(self, obInst, value):
         if isinstance(value, self.data.__class__):
-            setattr(obInst, self.private, value)
-            self._modified_(obInst)
-            return 
+            return self.set(obInst, value) 
 
         item = self.__get__(obInst, None)
         itemSetValue = getattr(item, '__setvalue__', None)
         if itemSetValue is not None:
             itemSetValue(value)
         else: item[:] = value
+    __set_factory__ = set
 
     def _modified_(self, obInst):
         pass
@@ -82,7 +85,7 @@ class KVDataProperty(DataProperty):
     _private_fmt = '__kv_%s'
 
     def _modified_(self, obInst):
-        obInst.kvpub(self.public, obInst)
+        obInst.kvpub.publishProp(self.public, obInst)
 
 def kvDataProperty(klass, *args, **kw):
     publish = kw.pop('publish', None)

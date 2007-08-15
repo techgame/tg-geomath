@@ -92,15 +92,25 @@ class AxisLayoutStrategy(BaseLayoutStrategy):
 
         cellBox = Box()
 
-        # let each cell know it's new pos and size
-        p0 = lbox.at[0,1] + (1,-1)*outside
-        for asize in axisSizes:
-            cellBox.pv = (p0-asize, p0 + nonAxisSize)
-            yield cellBox
+        if axis[0]: # horizontal
+            # let each cell know it's new pos and size
+            p0 = lbox.at[0,0] + (1,1)*outside
 
-            p0 = p0 - asize - axisBorders
+            for asize in axisSizes:
+                cellBox.pv = (p0, p0 + asize + nonAxisSize)
+                yield cellBox
+                p0 += asize + axisBorders
+            #p0 += axis*outside
 
-        #p0 -= axis*outside
+        else: # veritcal 
+            # let each cell know it's new pos and size
+            p0 = lbox.at[0,1] + (1,-1)*outside
+
+            for asize in axisSizes:
+                cellBox.pv = (p0 - asize, p0 + nonAxisSize)
+                yield cellBox
+                p0 -= asize + axisBorders
+            #p0 -= axis*outside
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

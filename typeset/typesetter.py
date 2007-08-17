@@ -61,6 +61,8 @@ class TypesetSection(DataHostObject):
         if kw:
             args += (kw.items(),)
         for attrs in args:
+            if isinstance(attrs, dict):
+                attrs = attrs.iteritems()
             for n, v in attrs:
                 setattr(self, n, v)
 
@@ -100,6 +102,8 @@ class TypeSetter(DataHostObject):
         if kw:
             args += (kw.items(),)
         for attrs in args:
+            if isinstance(attrs, dict):
+                attrs = attrs.iteritems()
             for n, v in attrs:
                 setattr(self, n, v)
 

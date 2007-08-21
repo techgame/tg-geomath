@@ -33,6 +33,9 @@ class DataProperty(object):
         self.public = publish
         self.private = self._private_fmt % (publish,)
 
+    def propertyNameTuple(self):
+        return (self.public, self.private)
+
     def onObservableClassInit(self, propertyName, obKlass):
         self._setPublishName(propertyName)
 

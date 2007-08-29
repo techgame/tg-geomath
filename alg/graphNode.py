@@ -114,6 +114,10 @@ class GraphNode(object):
             collection.remove(parent)
         return True
 
+    def disconnect(self):
+        for p in self.parents:
+            p.remove(self)
+
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     #~ Children collection
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

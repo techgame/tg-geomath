@@ -31,6 +31,11 @@ class NodeChangePass(GraphPass):
             elif node in visited:
                 itree.send(True)
                 continue
+            elif node.treeChangeSuspend:
+                node.treeChangeSuspend += 1
+                visited.add(node)
+                itree.send(True)
+                continue
 
             visited.add(node)
             onTreeChange = node.onTreeChange
@@ -88,8 +93,23 @@ class GraphNode(object):
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     onTreeChange = None #onTreeChange(node, cause)
+    treeChangeSuspend = False
     def treeChanged(self, cause=None):
+        if self.treeChangeSuspend:
+            self.treeChangeSuspend += 1
+            return
+
         NodeChangePass(self).perform(cause)
+
+    def __enter__(self):
+        self.treeChangeSuspend = True
+        return self
+
+    def __exit__(self, exc=None, exctype=None, tb=None):
+        tcs = self.treeChangeSuspend 
+        del self.treeChangeSuspend
+        if tcs > True:
+            self.treeChanged()
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     #~ Parents collection

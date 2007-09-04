@@ -230,7 +230,8 @@ class GraphNode(object):
 
     def assign(self, item):
         self.clear()
-        return self.add(item)
+        if item is not None:
+            return self.add(item)
 
     def extend(self, iterable):
         itemAsNode = self.itemAsNode

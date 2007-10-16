@@ -135,23 +135,29 @@ class FTTypeface(Typeface):
     lineSize = None
     ascenders = None
 
-    def __init__(self, ftFace, size=None, dpi=72):
+    dpiScale = 1
+
+    def __init__(self, ftFace, size=None, dpi=2*72, dpiLayout=72):
         if isinstance(ftFace, basestring):
             ftFace = FreetypeFace(ftFace)
 
         if size is not None:
             ftFace.setCharSize(size, dpi)
+            if dpiLayout:
+                self.dpiScale = float(dpiLayout)/dpi
 
         self._ftFace = ftFace
         self._createPool(ftFace.numGlyphs)
 
-        lh = ftFace.lineHeight >> 6
+        lh = self.dpiScale * ftFace.lineHeight / 64
         if ftFace.isLayoutVertical():
-            self.lineSize = numpy.array([lh,0], 'h')
+            self.lineSize = numpy.array([lh,0], 'f')
         else: 
-            self.lineSize = numpy.array([0,lh], 'h')
+            self.lineSize = numpy.array([0,lh], 'f')
 
-        self.ascenders = numpy.array([[ftFace.lineAscender >> 6], [ftFace.lineDescender >> 6]], 'h')
+        self.ascenders = numpy.array([
+                [self.dpiScale * ftFace.lineAscender / 64], 
+                [self.dpiScale * ftFace.lineDescender / 64]], 'f')
 
         self.isKerned = ftFace.hasFlag('kerning')
         self._initFace()
@@ -195,10 +201,10 @@ class FTTypeface(Typeface):
 
     def _geomForGlyph(self, gidx, ftGlyphSlot, char):
         if gidx:
-            adv = (1,-1)*ftGlyphSlot.padvance
+            adv = (1,-1) * ftGlyphSlot.padvance * self.dpiScale
 
             pbox = ftGlyphSlot.pbox
-            quad = (pbox * self._boxToQuad).sum(1)
+            quad = (pbox * self.dpiScale * self._boxToQuad).sum(1)
             return adv, quad
         else: return 0, 0
 
@@ -225,10 +231,10 @@ class FTFixedTypeface(FTTypeface):
         if gidx:
             adv = self.fixedAdv
             if adv is None:
-                adv = (1,-1)*ftGlyphSlot.padvance
+                adv = dpiScale*(1,-1)*ftGlyphSlot.padvance
 
             pbox = ftGlyphSlot.pbox
-            quad = (pbox * self._boxToQuad).sum(1)
+            quad = (self.dpiScale * pbox * self._boxToQuad).sum(1)
             return adv, quad
         else: return 0, 0
 

@@ -91,7 +91,7 @@ class AnimationContext(Animation):
         return self
 
     def add(self, animation):
-        isAnimator, animate = self.registry.register(animation, self)
+        isAnimator, animate = self._register(animation)
         if isAnimator:
             animation.initAnimation(self)
         self._animateList.append(animate)
@@ -109,13 +109,22 @@ class AnimationContext(Animation):
             self.add(animation)
 
     def remove(self, animation):
-        self.registry.unregister(animation, self)
-        self.discard(animation)
+        self._animateList.remove(animation)
+        self._unregister(animation)
+        return True
+
     def discard(self, animation):
-        try: self._animateList.remove(animation)
+        try: 
+            self._animateList.remove(animation)
+            self._unregister(animation)
         except LookupError: return False
         except ValueError: return False
         else: return True
+
+    def _register(self, animation):
+        return self.registry.register(animation, self)
+    def _unregister(self, animation):
+        return self.registry.unregister(animation, self)
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -123,22 +132,28 @@ class AnimationContext(Animation):
         raise NotImplementedError('Subclass Responsibility: %r' % (self,))
 
     def _animateParallel(self, tv, av, rmgr):
-        self.tv = tv
         alist = self._animateList
+        if not len(alist): return 0
+
+        self.tv = tv
         for idx, animate in enumerate(alist):
             # if animate is done
             if not animate(tv, av, rmgr):
+                self._unregister(animate)
                 alist[idx] = None
 
         alist[:] = [a for a in alist if a is not None]
         return len(alist)
     
     def _animateSerial(self, tv, av, rmgr):
-        self.tv = tv
         alist = self._animateList
+        if not len(alist): return 0
+
+        self.tv = tv
         for idx, animate in enumerate(alist):
             # if animate is done
             if not animate(tv, av, rmgr):
+                self._unregister(animate)
                 alist[idx] = None
             else: break
 

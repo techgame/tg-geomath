@@ -31,9 +31,6 @@ afm.touchfn = (lambda tv, av, info: True)
 class Animator(AnimationContext):
     afm = afm
 
-    def __repr__(self):
-        return "<%s %1.1f>"
-
     def __call__(self, fn):
         return self.addFn(fn)
     def __enter__(self):
@@ -84,7 +81,7 @@ afm.Timeline = Timeline
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class Chain(Timeline):
-    animate = Animator._animateSerial
+    animate = Timeline._animateSerial
 afm.Chain = Chain
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

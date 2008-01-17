@@ -135,29 +135,23 @@ class FTTypeface(Typeface):
     lineSize = None
     ascenders = None
 
-    dpiScale = 1
-
-    def __init__(self, ftFace, size=None, dpi=2*72, dpiLayout=72):
+    def __init__(self, ftFace, size=None, dpi=72):
         if isinstance(ftFace, basestring):
             ftFace = FreetypeFace(ftFace)
 
         if size is not None:
             ftFace.setCharSize(size, dpi)
-            if dpiLayout:
-                self.dpiScale = float(dpiLayout)/dpi
 
         self._ftFace = ftFace
         self._createPool(ftFace.numGlyphs)
 
-        lh = self.dpiScale * ftFace.lineHeight / 64
+        lh = ftFace.lineHeight >> 6
         if ftFace.isLayoutVertical():
-            self.lineSize = numpy.array([lh,0], 'f')
+            self.lineSize = numpy.array([lh,0], 'h')
         else: 
-            self.lineSize = numpy.array([0,lh], 'f')
+            self.lineSize = numpy.array([0,lh], 'h')
 
-        self.ascenders = numpy.array([
-                [self.dpiScale * ftFace.lineAscender / 64], 
-                [self.dpiScale * ftFace.lineDescender / 64]], 'f')
+        self.ascenders = numpy.array([[ftFace.lineAscender >> 6], [ftFace.lineDescender >> 6]], 'h')
 
         self.isKerned = ftFace.hasFlag('kerning')
         self._initFace()
@@ -201,10 +195,10 @@ class FTTypeface(Typeface):
 
     def _geomForGlyph(self, gidx, ftGlyphSlot, char):
         if gidx:
-            adv = (1,-1) * ftGlyphSlot.padvance * self.dpiScale
+            adv = (1,-1)*ftGlyphSlot.padvance
 
             pbox = ftGlyphSlot.pbox
-            quad = (pbox * self.dpiScale * self._boxToQuad).sum(1)
+            quad = (pbox * self._boxToQuad).sum(1)
             return adv, quad
         else: return 0, 0
 
@@ -231,10 +225,10 @@ class FTFixedTypeface(FTTypeface):
         if gidx:
             adv = self.fixedAdv
             if adv is None:
-                adv = dpiScale*(1,-1)*ftGlyphSlot.padvance
+                adv = (1,-1)*ftGlyphSlot.padvance
 
             pbox = ftGlyphSlot.pbox
-            quad = (self.dpiScale * pbox * self._boxToQuad).sum(1)
+            quad = (pbox * self._boxToQuad).sum(1)
             return adv, quad
         else: return 0, 0
 

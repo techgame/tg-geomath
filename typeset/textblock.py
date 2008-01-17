@@ -86,7 +86,6 @@ class TextBlock(DataHostObject):
     fit = False
     arena = None
     lines = None
-    textBoxAlign = (0.0, 0.0)
 
     def __init__(self, fit=False, clip=False, pageSize=None):
         self.init(fit, clip)
@@ -148,11 +147,8 @@ class TextBlock(DataHostObject):
 
         if fit is None:
             fit = self.fit
-
-        fitbox = self.layoutAlg.fit(self.lines, self.box)
-        self.fitbox = fitbox
         if fit:
-            self.box[:] = fitbox
+            self.box[:] = self.layoutAlg.fit(self.lines, self.box)
 
         self.layoutAlg(self.lines, self.box)
         self._layoutDirty = True
@@ -226,17 +222,12 @@ class TextBlock(DataHostObject):
         sorts = self._sorts
         vertex = meshes['vertex']
 
-        textBoxAlign = self.textBoxAlign
-        h,v = textBoxAlign
-        v = 1.0-v
-        alignOffset = (1,-1)*(self.box.at[h,v] - self.fitbox.at[h,v])
-
         for line in self.lines:
             sl = line.slice
             sl_sorts = sorts[sl]
             vertex[sl] = sl_sorts['quad']
             vertex[sl] += sl_sorts['offset']
-            vertex[sl] += line.offset + alignOffset
+            vertex[sl] += line.offset
 
     def _clipLines(self):
         boxYv = self.box.yv

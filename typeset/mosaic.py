@@ -23,14 +23,15 @@ from TG.geomath.data import DataHostObject
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 defaultPageSize = (512, 512)
+
 class MosaicPage(DataHostObject):
-    _fm_ = OBFactoryMap(pageSize=defaultPageSize)
+    _fm_ = OBFactoryMap()
     entryCount = 0
     _sizeToTexCoords = numpy.array([[0.,1.], [1.,1.], [1.,0.], [0.,0.]], 'f')
     coordScale = 1
 
-    def __init__(self, pageSize=None):
-        w, h = pageSize or self._fm_.pageSize
+    def __init__(self, pageSize):
+        w, h = pageSize
         self.data = numpy.zeros((h, w), 'B')
         
         self.blocks = {}
@@ -78,6 +79,9 @@ class MosaicPage(DataHostObject):
                         return idx, blocks
 
         if not create:
+            return None, []
+
+        if binIdx >= len(bins):
             return None, []
 
         height = bins[binIdx]

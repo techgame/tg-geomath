@@ -52,7 +52,7 @@ class FlexGridLayoutStrategy(GridLayoutStrategy):
                     rowAdj = availSize*rowWeights/rowWeightSum
                 else:
                     # distribute evenly across rows
-                    rowAdj = vaxis*availSize/nRows
+                    rowAdj = vaxis*availSize/(nRows or 1)
 
                 rowSizes += rowAdj
 
@@ -63,7 +63,7 @@ class FlexGridLayoutStrategy(GridLayoutStrategy):
                     colAdj = availSize*colWeights/colWeightSum
                 else:
                     # distribute evenly across columns
-                    colAdj = haxis*availSize/nCols
+                    colAdj = haxis*availSize/(nCols or 1)
 
                 colSizes += colAdj
 

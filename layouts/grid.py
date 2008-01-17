@@ -118,7 +118,7 @@ class GridLayoutStrategy(BaseLayoutStrategy):
 
         # figure out what our starting size minus borders is
         availSize = lbox.size - borders 
-        cellSize = (availSize / (nCols, nRows))
+        cellSize = (availSize / (nCols or 1, nRows or 1))
 
         # repeat rowSize nRows times
         rowSizes = empty((nRows, 2), 'f')
@@ -130,7 +130,7 @@ class GridLayoutStrategy(BaseLayoutStrategy):
 
     def cellsMinSize(self, cells, default=zeros((2,), 'f')):
         nRows, nCols = self.rowsCols
-        minSizes = zeros((nRows, nCols, 2), 'f')
+        minSizes = zeros((nRows or 1, nCols or 1, 2), 'f')
 
         # grab cell info into minSize and weights arrays
         idxWalk = ndindex((nRows, nCols))

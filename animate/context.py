@@ -28,6 +28,7 @@ class AnimationRegistry(object):
 
     def register(self, animation, context):
         key = self.keyFor(animation)
+
         if key is None:
             return False, animation
 
@@ -35,21 +36,18 @@ class AnimationRegistry(object):
         self.registry[key] = (animation.ref(), context.ref())
         if oldEntry is not None:
             self.notifyReplaced(*oldEntry)
-        return True, animation.animate
+        return key, animation.animate
 
-    def unregister(self, animation, context):
-        key = self.keyFor(animation)
+    def unregister(self, key, animation, context):
         if key is None:
-            return False
-        entry = self.registry.get(key)
+            key = self.keyFor(animation)
+
+        entry = self.registry.pop(key, None)
         if entry is None:
             return False
 
         aref, cref = entry
-        if context is not cref():
-            return False
-
-        del self.registry[key]
+        self.notifyReplaced(aref, cref)
         return True
 
     def notifyReplaced(self, aref, cref):
@@ -91,17 +89,17 @@ class AnimationContext(Animation):
         return self
 
     def add(self, animation):
-        isAnimator, animate = self.registry.register(animation, self)
-        if isAnimator:
+        key, animate = self._register(animation)
+        if key:
             animation.initAnimation(self)
-        self._animateList.append(animate)
+        self._animateList.append((key, animate))
         return animation
     def addFn(self, fn, incInfo=False):
         if incInfo:
             lfn = lambda tv, av, i: fn(i)
         else: lfn = lambda tv, av, i: fn()
 
-        self._animateList.append(lfn)
+        self._animateList.append((None, lfn))
         return fn
 
     def extend(self, iterable):
@@ -109,13 +107,30 @@ class AnimationContext(Animation):
             self.add(animation)
 
     def remove(self, animation):
-        self.registry.unregister(animation, self)
-        self.discard(animation)
+        key = self._keyFor(animation)
+        if key is None:
+            for fn, key in self._animateList:
+                if animation == fn:
+                    break
+
+
+        self._animateList.remove((key, animation))
+        self._unregister(animation, key)
+        return True
+
     def discard(self, animation):
-        try: self._animateList.remove(animation)
+        try: 
+            self.remove(animation)
         except LookupError: return False
         except ValueError: return False
         else: return True
+
+    def _keyFor(self, animation):
+        return self.registry.keyFor(animation)
+    def _register(self, animation):
+        return self.registry.register(animation, self)
+    def _unregister(self, animation, key):
+        return self.registry.unregister(key, animation, self)
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -125,9 +140,12 @@ class AnimationContext(Animation):
     def _animateParallel(self, tv, av, rmgr):
         self.tv = tv
         alist = self._animateList
-        for idx, animate in enumerate(alist):
+        if not len(alist): return 0
+
+        for idx, (key, animate) in enumerate(alist):
             # if animate is done
             if not animate(tv, av, rmgr):
+                self._unregister(animate, key)
                 alist[idx] = None
 
         alist[:] = [a for a in alist if a is not None]
@@ -136,9 +154,12 @@ class AnimationContext(Animation):
     def _animateSerial(self, tv, av, rmgr):
         self.tv = tv
         alist = self._animateList
-        for idx, animate in enumerate(alist):
+        if not len(alist): return 0
+
+        for idx, (key, animate) in enumerate(alist):
             # if animate is done
             if not animate(tv, av, rmgr):
+                self._unregister(animate, key)
                 alist[idx] = None
             else: break
 

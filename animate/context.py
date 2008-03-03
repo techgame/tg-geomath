@@ -120,7 +120,7 @@ class AnimationContext(Animation):
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def animate(self, tv, av, info):
-        raise NotImplementedError('Subclass Responsibility: %r' % (self,))
+        raise NotImplementedError('Subclass Responsibility: %r' % (self.__class__,))
 
     def _animateParallel(self, tv, av, rmgr):
         self.tv = tv

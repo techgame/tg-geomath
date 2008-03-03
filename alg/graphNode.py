@@ -228,6 +228,11 @@ class GraphNode(object):
             return node
     append = add
 
+    def addIfAbsent(self, item):
+        node = self.itemAsNode(item)
+        if node in self: return False
+        return self.add(node)
+
     def assign(self, item):
         self.clear()
         if item is not None:
@@ -260,6 +265,11 @@ class GraphNode(object):
         if nodeChanges:
             self._children[idx:idx] = newChildren
             self.treeChanged(nodeChanges)
+
+    def discard(self, item):
+        node = self.itemAsNode(item, False)
+        if node in self:
+            return self.remove(node)
 
     def remove(self, item):
         if isinstance(item, list):

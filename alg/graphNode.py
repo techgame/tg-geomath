@@ -142,9 +142,24 @@ class GraphNode(object):
     #~ Children collection
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+    _enabled = True
+    def isEnabled(self):
+        return self._enabled
+    def enable(self, enable=True):
+        if self._enabled != enable:
+            self._enabled = enable
+            self.treeChanged()
+        return self._enabled
+    def disable(self, disable=True):
+        return self.enable(not disable)
+    
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
     _children = None
     def getChildren(self):
-        return self._children
+        if self.isEnabled():
+            return self._children
+        else: return []
     children = property(getChildren)
     
     def __len__(self):
@@ -228,6 +243,11 @@ class GraphNode(object):
             return node
     append = add
 
+    def addIfAbsent(self, item):
+        node = self.itemAsNode(item)
+        if node in self: return False
+        return self.add(node)
+
     def assign(self, item):
         self.clear()
         if item is not None:
@@ -260,6 +280,11 @@ class GraphNode(object):
         if nodeChanges:
             self._children[idx:idx] = newChildren
             self.treeChanged(nodeChanges)
+
+    def discard(self, item):
+        node = self.itemAsNode(item, False)
+        if node in self:
+            return self.remove(node)
 
     def remove(self, item):
         if isinstance(item, list):

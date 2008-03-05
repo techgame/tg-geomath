@@ -58,13 +58,13 @@ dtype_sorts = numpy.dtype([
     ('glyphidx', 'L'),
     ('typeface', 'object'),
     ('hidx', 'L'),
-    ('lineSize', 'h', (2,)),
-    ('ascenders', 'h', (2,1)),
+    ('lineSize', 'f', (2,)),
+    ('ascenders', 'f', (2,1)),
 
-    ('advance', 'h', (1, 2)),
-    ('offset', 'l', (1, 2)),
+    ('advance', 'f', (1, 2)),
+    ('offset', 'f', (1, 2)),
     ('color', 'B', (1, 4)),
-    ('quad', 'l', (4, 2)),
+    ('quad', 'f', (4, 2)),
     ])
 
 class Typeface(dict):
@@ -129,7 +129,7 @@ class FTTypeface(Typeface):
             [[1,1],[0,0]],
             [[0,1],[1,0]],
             [[0,0],[1,1]],
-            [[1,0],[0,1]]], 'l')
+            [[1,0],[0,1]]], 'f')
 
     isKerned = False
     lineSize = None
@@ -142,16 +142,22 @@ class FTTypeface(Typeface):
         if size is not None:
             ftFace.setCharSize(size, dpi)
 
+        smul = 72.0/dpi
+        s64mul = 72.0/(64*dpi)
+        self.sadv = (smul, -smul)
+
         self._ftFace = ftFace
         self._createPool(ftFace.numGlyphs)
 
-        lh = ftFace.lineHeight >> 6
+        #lh = ftFace.lineHeight >> 6
+        lh = ftFace.lineHeight * s64mul
         if ftFace.isLayoutVertical():
-            self.lineSize = numpy.array([lh,0], 'h')
+            self.lineSize = numpy.array([lh,0], 'f')
         else: 
-            self.lineSize = numpy.array([0,lh], 'h')
+            self.lineSize = numpy.array([0,lh], 'f')
 
-        self.ascenders = numpy.array([[ftFace.lineAscender >> 6], [ftFace.lineDescender >> 6]], 'h')
+        #self.ascenders = numpy.array([[ftFace.lineAscender >> 6], [ftFace.lineDescender >> 6]], 'h')
+        self.ascenders = numpy.array([[ftFace.lineAscender * s64mul], [ftFace.lineDescender * s64mul]], 'h')
 
         self.isKerned = ftFace.hasFlag('kerning')
         self._initFace()
@@ -164,7 +170,7 @@ class FTTypeface(Typeface):
             return advance
 
         if advance is None:
-            advance = numpy.zeros((len(sorts), 1, 2), 'l')
+            advance = numpy.zeros((len(sorts), 1, 2), 'f')
 
         return self._ftFace.kernArray(sorts['glyphidx'], advance)
 
@@ -195,9 +201,10 @@ class FTTypeface(Typeface):
 
     def _geomForGlyph(self, gidx, ftGlyphSlot, char):
         if gidx:
-            adv = (1,-1)*ftGlyphSlot.padvance
+            sadv = self.sadv
+            adv = sadv*ftGlyphSlot.padvance
 
-            pbox = ftGlyphSlot.pbox
+            pbox = sadv[0]*ftGlyphSlot.pbox
             quad = (pbox * self._boxToQuad).sum(1)
             return adv, quad
         else: return 0, 0

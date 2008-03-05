@@ -107,13 +107,14 @@ afm.Interval = Interval
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class Offset(Animator):
+    animateGroup = Animator._animateSerial
     def __init__(self, parentCtx, td):
         Animator.__init__(self, parentCtx)
         self.td = td
 
     def animate(self, tv, av, rmgr):
         dtv = self.dtv(tv)
-        if dtv < 0:
+        if dtv < self.td:
             return True
         return self.animateGroup(tv, av, rmgr)
 afm.Offset = Offset

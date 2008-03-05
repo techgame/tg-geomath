@@ -94,6 +94,9 @@ def toAspect(size, aspect, nidx=0, didx=1, grow=None):
     if aspect <= 0:
         return size
 
+    if (size == 0).any():
+        return 0
+
     acurrent = truediv(size[nidx], size[didx])
     if bool(grow) ^ (aspect > acurrent):
         # new h is greater than old h

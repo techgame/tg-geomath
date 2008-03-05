@@ -36,11 +36,9 @@ class AnimateToTarget(Animation):
         return self
 
     def registryKey(self):
-        try: 
-            hkey = hash(self.key)
-        except TypeError: 
-            hkey = id(self.key)
-        return ((id(self.host), hkey))
+        try: hkey = hash(self.key)
+        except TypeError: hkey = None
+        return hash((id(self.host), hkey))
 
     def animate(self, tv, av, rmgr):
         if av <= 0: 

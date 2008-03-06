@@ -26,6 +26,7 @@ from .basic import BaseLayoutStrategy
 
 class AxisLayoutStrategy(BaseLayoutStrategy):
     axis = Vector.property([0,0], 'b')
+    clip = False
 
     def layoutCalc(self, cells, box):
         lbox = box.copy()
@@ -61,7 +62,10 @@ class AxisLayoutStrategy(BaseLayoutStrategy):
         axis = self.axis
         weights, axisSizes = self.cellWeightsMinSizes(cells)
 
-        minNonAxisSize = (1-axis)*(axisSizes.max(0) + 2*self.outside)
+        if axisSizes.size > 0:
+            minNonAxisSize = axisSizes.max(0)
+        else: minNonAxisSize = 0
+        minNonAxisSize = (1-axis)*(minNonAxisSize + 2*self.outside)
         lbox.size = numpy.max([lbox.size, minNonAxisSize], axis=0)
         weights *= axis
         axisSizes *= axis
@@ -91,26 +95,40 @@ class AxisLayoutStrategy(BaseLayoutStrategy):
 
         cellBox = Box()
 
+        clip = self.clip
         if axis[0]: # horizontal
             # let each cell know it's new pos and size
             p0 = lbox.at[0,0] + (1,1)*outside
+            pend = lbox.at[1,0] + (-1,1)*outside
 
             for asize in axisSizes:
-                cellBox.pv = (p0, p0 + asize + nonAxisSize)
+                p1 = p0 + asize + nonAxisSize
+                if clip and (pend-p1)[0] <= 0:
+                    break
+
+                cellBox.pv = (p0, p1)
                 yield cellBox
                 p0 += asize + axisBorders
+
             #p0 += axis*outside
 
         else: # veritcal 
             # let each cell know it's new pos and size
             p0 = lbox.at[0,1] + (1,-1)*outside
+            pend = lbox.at[0,0] + (1,1)*outside
 
             for asize in axisSizes:
-                cellBox.pv = (p0 - asize, p0 + nonAxisSize)
+                p1 = p0 - asize
+                if clip and (p1-pend)[1] <= 0:
+                    break
+
+                cellBox.pv = (p1, p0 + nonAxisSize)
                 yield cellBox
                 p0 -= asize + axisBorders
+
             #p0 -= axis*outside
 
+    debug = False
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def cellWeightsMinSizes(self, cells, default=zeros((2,), 'f')):

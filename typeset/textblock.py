@@ -68,10 +68,10 @@ class TextBlockLine(DataHostObject):
 
     # adj_offset helps to correct for texel clipping due to glScale() introduced errors
     _adj_offset = numpy.array([
-            [-0.0, -0.25],
-            [+0.0, -0.25],
-            [+0.0, +0.25],
-            [-0.0, +0.25]], 'f')
+            [-0.15, -0.25],
+            [+0.15, -0.25],
+            [+0.15, +0.25],
+            [-0.15, +0.25]], 'f')
     def getOffset(self):
         return (self.box.p0 - self.tbox.p0 - self._linearOffsetStart) + self._adj_offset
     offset = property(getOffset)

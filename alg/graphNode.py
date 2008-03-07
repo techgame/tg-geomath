@@ -188,6 +188,7 @@ class GraphNode(object):
 
     def clear(self):
         del self[:]
+        self.treeChanged()
 
     def __contains__(self, other):
         node = self.itemAsNode(other, False)

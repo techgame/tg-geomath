@@ -141,7 +141,7 @@ class ColorVector(Vector):
         self.convertFrom(self.fromHexRaw(hexData))
     hex = property(getHex, setHex)
 
-    def tohex(self, join=' '):
+    def tohex(self):
         if self.dtype.char != 'B':
             return self.convert(dtype='B').tohex()
 
@@ -320,8 +320,20 @@ def colorVectorFromUint32(v, hasAlpha=False):
     else:
         r, g, b = (v>>16), (v>>8), (v>>0)
         a = 0xff
-
     return colorVector([r, g, b, a], 'B')
+def colorVectorToUint32(v, incAlpha=None, alphaIsMSB=False):
+    if incAlpha is None:
+        incAlpha = (len(v) == 4)
+
+    if incAlpha:
+        r, g, b, a = map(int, v)
+        if alphaIsMSB:
+            return (a<<24) + (r<<16) + (g<<8) + (b<<0)
+        else:
+            return (r<<24) + (g<<16) + (b<<8) + (a<<0)
+    else:
+        r, g, b = map(int, v[:3])
+        return (r<<16) + (g<<8) + (b<<0)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Define colorNameTable now, because it uses colorVectorFromUint32

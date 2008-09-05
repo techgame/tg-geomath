@@ -92,7 +92,7 @@ class TextBlock(DataHostObject):
     fit = False
     arena = None
     lines = None
-    textBoxAlign = (0.0, 0.0)
+    textBoxAlign = (0.0, 1.0)
 
     def __init__(self, fit=False, clip=False, pageSize=None):
         self.init(fit, clip)

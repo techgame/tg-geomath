@@ -88,3 +88,17 @@ class AnimationTargetView(object):
         v0 = obj[key]
         return self._animator_.toTarget(v0, v1, setitem, obj, key)
 
+class AnimationTargetViewOuter(AnimationTargetView):
+    __slots__ = AnimationTargetView.__slots__ + ['_outer_']
+    def __init__(self, outer, animator, obj):
+        AnimationTargetView.__init__(self, animator, obj)
+        self._outer_ = outer
+
+    def _follow_(self, obj):
+        return type(self)(self._outer_, self._animator_, obj)
+
+    def __enter__(self):
+        return self._outer_, self
+    def __exit__(self, exc_type, exc_value, exc_tb):
+        pass
+

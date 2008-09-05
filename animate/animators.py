@@ -12,7 +12,7 @@
 
 from TG.metaObserving import OBFactoryMap
 from .context import AnimationRegistry, AnimationContext
-from .targets import AnimateToTarget, AnimationTargetView
+from .targets import AnimateToTarget, AnimationTargetView, AnimationTargetViewOuter
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Animators
@@ -24,6 +24,7 @@ afm = AnimatorFactoryMap()
 afm.Registry = AnimationRegistry
 afm.ToTarget = AnimateToTarget
 afm.TargetView = AnimationTargetView
+afm.TargetViewOuter = AnimationTargetViewOuter
 afm.touchfn = (lambda tv, av, info: True)
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -52,6 +53,15 @@ class Animator(AnimationContext):
     def chain(self, iterable=None):
         ar = self.afm.Chain(self, iterable)
         return self.add(ar)
+
+    def targetChain(self, obj, td=1., afn=None):
+        outer = self.chain()
+        animator = outer.interval(td, afn)
+        return self.targetViewOuter(outer, obj, animator)
+    viewChain = targetChain
+
+    def targetViewOuter(self, outer, obj, animator):
+        return self.afm.TargetViewOuter(outer, animator, obj)
 
     def target(self, obj, td=1., afn=None):
         animator = self.interval(td, afn)

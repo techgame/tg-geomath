@@ -72,7 +72,8 @@ class GridLayoutStrategy(BaseLayoutStrategy):
 
         # let cells lay themselves out in their boxes
         for cbox, c in izip(iCellBoxes, iCells):
-            c.layoutInBox(cbox)
+            if c is not None:
+                c.layoutInBox(cbox)
 
         # hide cells that have no cbox
         for c in iCells:

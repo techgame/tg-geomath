@@ -32,7 +32,10 @@ CVS/
 
 # Various system generated files
 syntax: glob 
-Icon?
 Thumbs.db
 \.DS_Store
+
+
+syntax: regexp
+Icon\r
 

@@ -87,7 +87,11 @@ def toAspect(size, aspect, nidx=0, didx=1, grow=None):
         if isinstance(aspect[1], bool):
             aspect, grow = aspect
     if not isinstance(aspect, (int, long, float)):
-        aspect = truediv(aspect[nidx], aspect[didx])
+        if (aspect[didx] == 0):
+            if (aspect[nidx] != 0):
+                return 0
+            else: aspect = 1
+        else: aspect = truediv(aspect[nidx], aspect[didx])
 
     # compute
     size = asarray(size, float)

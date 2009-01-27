@@ -118,6 +118,13 @@ class AnimationContext(Animation):
         self._unregister(animation, key)
         return True
 
+    def clear(self):
+        animateList = self._animateList
+        self._animateList = []
+
+        for (key, animation) in animateList:
+            self._unregister(animation, key)
+
     def discard(self, animation):
         try: 
             self.remove(animation)

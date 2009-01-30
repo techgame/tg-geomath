@@ -191,6 +191,7 @@ class GraphNode(object):
         self.treeChanged()
 
     def __contains__(self, other):
+        if other is None: return False
         node = self.itemAsNode(other, False)
         return node in self._children
 
@@ -236,8 +237,10 @@ class GraphNode(object):
     def add(self, item):
         if isinstance(item, list):
             return self.extend(item)
+        if item is None: return
 
         node = self.itemAsNode(item)
+        if node is None: return
         if node.onAddToParent(self):
             self._children.append(node)
             self.treeChanged(node)
@@ -245,7 +248,9 @@ class GraphNode(object):
     append = add
 
     def addIfAbsent(self, item):
+        if item is None: return
         node = self.itemAsNode(item)
+        if node is None: return
         if node in self: return False
         return self.add(node)
 
@@ -290,9 +295,9 @@ class GraphNode(object):
     def remove(self, item):
         if isinstance(item, list):
             return [self.remove(each) for each in item]
+        if item is None: return
         node = self.itemAsNode(item, False)
-        if node is None: 
-            return
+        if node is None: return
         if node.onRemoveFromParent(self):
             self._children.remove(node)
             self.treeChanged(node)

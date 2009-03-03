@@ -373,6 +373,10 @@ class Box(object):
         self._data[sidx] = self.posForSizeAt(at, self.size*scale, sidx)
         self._data_changed_
 
+    def scaleToSizeAt(self, size, at=None, sidx=Ellipsis, fn=min):
+        scale = fn(size / self.size)
+        return self.scaleAt(scale, at, sidx)
+
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     @property

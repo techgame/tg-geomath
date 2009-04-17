@@ -28,7 +28,7 @@ class AxisLayoutStrategy(BaseLayoutStrategy):
     axis = Vector.property([0,0], 'b')
     clip = False
 
-    def layoutCalc(self, cells, box):
+    def layoutCalc(self, cells, box, at=None):
         lbox = box.copy()
         axisSizes, lbox = self.axisSizesFor(cells, lbox)
 
@@ -37,7 +37,7 @@ class AxisLayoutStrategy(BaseLayoutStrategy):
         lsize = (1-axis)*lbox.size
         # add axisSize and borders along axis
         lsize += axisSizes.sum(0) + axis*(2*self.outside + (len(axisSizes)-1)*self.inside)
-        lbox.size = lsize
+        lbox.setSize(lsize, at)
         return lbox
 
     def layoutCells(self, cells, box):
@@ -128,7 +128,6 @@ class AxisLayoutStrategy(BaseLayoutStrategy):
 
             #p0 -= axis*outside
 
-    debug = False
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     def cellWeightsMinSizes(self, cells, default=zeros((2,), 'f')):

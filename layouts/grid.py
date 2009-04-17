@@ -45,7 +45,7 @@ class GridLayoutStrategy(BaseLayoutStrategy):
     nCols = property(getNCols, setNCols)
 
 
-    def layoutCalc(self, cells, box):
+    def layoutCalc(self, cells, box, at=None):
         lbox = box.copy()
         rbox = box.copy()
 
@@ -58,7 +58,7 @@ class GridLayoutStrategy(BaseLayoutStrategy):
         # plus borders along axis
         nRows, nCols = self.rowsCols
         lsize += 2*self.outside + (nCols-1, nRows-1)*self.inside
-        rbox.size = lsize
+        rbox.setSize(lsize, at)
         return rbox
 
     def layoutCells(self, cells, box):

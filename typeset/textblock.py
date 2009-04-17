@@ -155,10 +155,10 @@ class TextBlock(DataHostObject):
         if fit is None:
             fit = self.fit
 
-        fitbox = self.layoutAlg.fit(self.lines, self.box)
+        fitbox = self.layoutAlg.fit(self.lines, self.box, at=(0,1))
         self.fitbox = fitbox
         if fit:
-            self.box[:] = fitbox
+            self.box.setSize(fitbox.size, at=(0,1))
 
         self.layoutAlg(self.lines, self.box)
         self._layoutDirty = True

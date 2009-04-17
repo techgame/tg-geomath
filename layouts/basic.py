@@ -38,13 +38,13 @@ class BaseLayoutStrategy(DataHostObject):
     outside = Vector.property([0,0], 'f')
     inside = Vector.property([0,0], 'f')
 
-    def layoutCalc(self, cells, box=defaultBox):
+    def layoutCalc(self, cells, box=defaultBox, at=None):
         raise NotImplementedError('Subclass Responsibility: %r' % (self,))
     def layoutCells(self, cells, box=defaultBox):
         raise NotImplementedError('Subclass Responsibility: %r' % (self,))
 
-    def fit(self, cells, box=defaultBox):
-        return self.layoutCalc(cells, box)
+    def fit(self, cells, box=defaultBox, at=None):
+        return self.layoutCalc(cells, box, at)
     def __call__(self, cells, box=defaultBox):
         return self.layoutCells(cells, box)
 

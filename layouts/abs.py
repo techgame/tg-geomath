@@ -19,7 +19,7 @@ from .basic import BaseLayoutStrategy
 class AbsLayoutStrategy(BaseLayoutStrategy):
     """AbsLayout just lets each cell know it should lay itself out"""
 
-    def layoutCalc(self, cells, box):
+    def layoutCalc(self, cells, box, at=None):
         return box.copy()
 
     def layoutCells(self, cells, box):

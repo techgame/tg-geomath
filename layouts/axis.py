@@ -57,7 +57,10 @@ class AxisLayoutStrategy(BaseLayoutStrategy):
         for c in iCells:
             c.layoutInBox(None)
 
-    def axisSizesFor(self, cells, lbox):
+    def axisSizesFor(self, cells, lbox=None):
+        if lbox is None:
+            lbox = Box()
+
         # determin minsize
         axis = self.axis
         weights, axisSizes = self.cellWeightsMinSizes(cells)

@@ -247,6 +247,9 @@ class Box(object):
     def __str__(self):
         return str(self._data)
 
+    def __nonzero__(self):
+        return True
+
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     #~ Instance construction
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

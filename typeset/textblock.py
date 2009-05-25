@@ -77,8 +77,9 @@ class TextBlockLine(DataHostObject):
     offset = property(getOffset)
 
     def layoutInBox(self, box):
-        align = self.align
-        self.box.at[align] = box.at[align]
+        if box:
+            align = self.align
+            self.box.at[align] = box.at[align]
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

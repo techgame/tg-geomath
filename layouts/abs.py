@@ -27,5 +27,6 @@ class AbsLayoutStrategy(BaseLayoutStrategy):
         lbox.inset(self.outside)
 
         for c in cells:
-            c.layoutInBox(lbox)
+            if c is not None:
+                c.layoutInBox(lbox)
 

@@ -189,6 +189,8 @@ class ColorVector(Vector):
         hexFormatMap[n, 2*n] = (n, 2, 1)
         hexFormatMap[0, 2*n] = (n, 2, 1)
     hexFormatMap[0, 2] = (1, 2, 1)
+    hexFormatMap[2, 8] = (4, 2, 1)
+    hexFormatMap[2, 4] = (4, 1, 0x11)
 
     hexRemapNto4 = {
         1: (lambda r: r*3+(0xff,)),

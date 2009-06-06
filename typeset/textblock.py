@@ -235,7 +235,6 @@ class TextBlock(DataHostObject):
 
         textBoxAlign = self.textBoxAlign
         h,v = textBoxAlign
-        v = 1.0-v
         alignOffset = (1,-1)*(self.box.at[h,v] - self.fitbox.at[h,v])
 
         for line in self.lines:

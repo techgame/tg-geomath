@@ -12,7 +12,7 @@
 
 import os
 import numpy
-from TG.freetype2.face import FreetypeFace, FreetypeException
+from TG.ext.freetype2.face import FreetypeFace, FreetypeException
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Main

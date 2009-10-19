@@ -16,7 +16,7 @@ import string
 import numpy
 from numpy import resize, array, empty, zeros
 
-from TG.freetype2.face import FreetypeFace, FreetypeException
+from TG.ext.freetype2.face import FreetypeFace, FreetypeException
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Definitions 

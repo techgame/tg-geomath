@@ -28,6 +28,27 @@ class AxisLayoutStrategy(BaseLayoutStrategy):
     axis = Vector.property([0,0], 'b')
     clip = False
 
+    def countVisibile(self, cells, box):
+        return sum(1 for v,c in self.iterCellVisibility(cells, bxo) if v)
+    def countInvisibile(self, cells, box):
+        return sum(1 for v,c in self.iterCellVisibility(cells, bxo) if not v)
+    def iterCellVisibility(self, cells, box):
+        lbox = box.copy()
+
+        # determin sizes for cells
+        axisSizes, lbox = self.axisSizesFor(cells, lbox)
+
+        iCellBoxes = self.iterCellBoxes(cells, lbox, axisSizes)
+        iCells = iter(cells)
+
+        # let cells lay themselves out in their boxes
+        for cbox, c in izip(iCellBoxes, iCells):
+            yield True, c
+
+        # hide cells that have no cbox
+        for c in iCells:
+            yield False, c
+
     def layoutCalc(self, cells, box, at=None):
         lbox = box.copy()
         axisSizes, lbox = self.axisSizesFor(cells, lbox)

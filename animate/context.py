@@ -10,6 +10,7 @@
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+from types import MethodType
 import weakref
 from .base import Animation
 
@@ -63,6 +64,10 @@ class AnimationRegistry(object):
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+def isSameInstanceMethod(a,b):
+    return (isinstance(a, MethodType) and isinstance(b, MethodType) and
+        (a.im_func is b.im_func) and (a.im_self is b.im_self))
+
 class AnimationContext(Animation):
     def __init__(self, parentCtx=None):
         if parentCtx is not None:
@@ -109,14 +114,21 @@ class AnimationContext(Animation):
     def remove(self, animation):
         key = self._keyFor(animation)
         if key is None:
-            for fn, key in self._animateList:
-                if animation == fn:
+            for key, fn in self._animateList:
+                if animation == fn: break
+                elif self.isSameInstanceMethod(animation, fn):
+                    animation = fn
                     break
 
+        try:
+            self._animateList.remove((key, animation))
+        except ValueError:
+            return False
+        else:
+            self._unregister(animation, key)
+            return True
 
-        self._animateList.remove((key, animation))
-        self._unregister(animation, key)
-        return True
+    isSameInstanceMethod = staticmethod(isSameInstanceMethod)
 
     def clear(self):
         animateList = self._animateList
@@ -148,14 +160,17 @@ class AnimationContext(Animation):
         self.tv = tv
         alist = self._animateList
         if not len(alist): return 0
+        
+        try:
+            for idx, (key, animate) in enumerate(alist):
+                # if animate is done
+                if not animate(tv, av, rmgr):
+                    self._unregister(animate, key)
+                    alist[idx] = None
+        finally:
+            alist[:] = [a for a in alist if a is not None]
 
-        for idx, (key, animate) in enumerate(alist):
-            # if animate is done
-            if not animate(tv, av, rmgr):
-                self._unregister(animate, key)
-                alist[idx] = None
 
-        alist[:] = [a for a in alist if a is not None]
         return len(alist)
     
     def _animateSerial(self, tv, av, rmgr):
@@ -163,14 +178,16 @@ class AnimationContext(Animation):
         alist = self._animateList
         if not len(alist): return 0
 
-        for idx, (key, animate) in enumerate(alist):
-            # if animate is done
-            if not animate(tv, av, rmgr):
-                self._unregister(animate, key)
-                alist[idx] = None
-            else: break
+        try:
+            for idx, (key, animate) in enumerate(alist):
+                # if animate is done
+                if not animate(tv, av, rmgr):
+                    self._unregister(animate, key)
+                    alist[idx] = None
+                else: break
 
-        alist[:] = [a for a in alist if a is not None]
+        finally:
+            alist[:] = [a for a in alist if a is not None]
         return len(alist)
 
     _animateGroup = _animateParallel

@@ -10,27 +10,14 @@
 #~ Imports 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+from functools import partial
 from .graphPass import GraphPass
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #~ Compiled Graph Pass
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class CompileStack(object):
-    def add(self, *items):
-        self._result.extend(items)
-    def addUnwind(self, *items):
-        self._unwind.extend(items)
-    def cull(self, bCull=True):
-        self._cull = bCull
-
-    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    def __len__(self):
-        return len(self._result)
-    def __iter__(self):
-        return iter(self._result)
-
+class RawCompileStack(object):
     def _compile_(self, itree, compileNodeTo):
         self._cull = False
         self._result = []
@@ -74,6 +61,35 @@ class CompileStack(object):
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+class CompileStack(RawCompileStack):
+    def add(self, *items):
+        self._result.extend(items)
+    def addUnwind(self, *items):
+        self._unwind.extend(items)
+    def cull(self, bCull=True):
+        self._cull = bCull
+
+    def __len__(self):
+        return len(self._result)
+    def __iter__(self):
+        return iter(self._result)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class CompileCallStack(CompileStack):
+    def addFn(self, fn, *args):
+        if args:
+            fn = partial(fn, *args)
+        self.add(fn)
+    def addUnwindFn(self, fn, *args):
+        if args:
+            fn = partial(fn, *args)
+        self.addUnwind(fn)
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#~ Compiled Graph Pass
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 class CompiledGraphPass(GraphPass):
     def newCompileStack(self, key, root):
         return CompileStack()
@@ -97,7 +113,7 @@ class CompiledGraphPass(GraphPass):
         raise NotImplementedError('Subclass Responsibility: %r' % (self,))
 
     def _getCached(self, key, root):
-        return getattr(self, key, None), None
+        return getattr(self, key, None)
     def _setCached(self, key, root, result):
         setattr(self, key, result)
 

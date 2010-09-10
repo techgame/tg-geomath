@@ -45,6 +45,7 @@ class NodeChangePass(GraphPass):
                     continue
     __call__ = perform
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class GraphNode(object):
     order = 0
@@ -214,14 +215,14 @@ class GraphNode(object):
             self.treeChanged(node)
             return node
 
-    def insertBefore(self, item, nidx):
-        """Inserts item before index of nidx in _children"""
-        nidx = self.itemAsNode(nidx, False)
+    def insertBefore(self, item, idxItem):
+        """Inserts item before index of idxItem in _children"""
+        nidx = self.itemAsNode(idxItem, False)
         idx = self._children.index(nidx)
         return self.insert(idx, item)
-    def insertAfter(self, item, nidx):
-        """Inserts item after index of nidx in _children"""
-        nidx = self.itemAsNode(nidx, False)
+    def insertAfter(self, item, idxItem):
+        """Inserts item after index of idxItem in _children"""
+        nidx = self.itemAsNode(idxItem, False)
         idx = self._children.index(nidx) + 1
         return self.insert(idx, item)
 

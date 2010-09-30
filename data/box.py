@@ -416,6 +416,21 @@ class Box(object):
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+    def vInside(self, pt):
+        return ((self.p0[1]<=pt[1]) & (self.p1[1]>=pt[1])).all()
+    def vOutside(self, pt):
+        return ((self.p0[1]>pt[1]) | (self.p1[1]<pt[1])).any()
+
+    def hInside(self, pt):
+        return ((self.p0[0]<=pt[0]) & (self.p1[0]>=pt[0])).all()
+    def hOutside(self, pt):
+        return ((self.p0[0]>pt[0]) | (self.p1[0]<pt[0])).any()
+
+    def inside(self, pt):
+        return ((self.p0<=pt) & (self.p1>=pt)).all()
+    def outside(self, pt):
+        return ((self.p0>pt) | (self.p1<pt)).any()
+
     def getSize(self, xfrm=_xfrmSize):
         return (self._data*xfrm).sum(-2)
     def setSize(self, size, at=None, sidx=Ellipsis):

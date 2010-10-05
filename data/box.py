@@ -420,11 +420,19 @@ class Box(object):
         return ((self.p0[1]<=pt[1]) & (self.p1[1]>=pt[1])).all()
     def vOutside(self, pt):
         return ((self.p0[1]>pt[1]) | (self.p1[1]<pt[1])).any()
+    def vInsideY(self, y):
+        return ((self.p0[1]<=y) & (self.p1[1]>=y)).all()
+    def vOutsideY(self, y):
+        return ((self.p0[1]>y) | (self.p1[1]<y)).all()
 
     def hInside(self, pt):
         return ((self.p0[0]<=pt[0]) & (self.p1[0]>=pt[0])).all()
     def hOutside(self, pt):
         return ((self.p0[0]>pt[0]) | (self.p1[0]<pt[0])).any()
+    def hInsideX(self, x):
+        return ((self.p0[0]<=x) & (self.p1[0]>=x)).all()
+    def hOutsideX(self, x):
+        return ((self.p0[0]>x) | (self.p1[0]<x)).any()
 
     def inside(self, pt):
         return ((self.p0<=pt) & (self.p1>=pt)).all()

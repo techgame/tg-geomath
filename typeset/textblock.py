@@ -132,6 +132,7 @@ class TextBlock(DataHostObject):
     def update(self, typeset):
         text, sorts, sectionList = typeset.compile()
 
+        self.text = text
         self.lines = []
         add = self.lines.append
         BlockLine = self._fm_.BlockLine

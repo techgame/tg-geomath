@@ -66,7 +66,9 @@ class BezierP(ndarray):
     __array_priority__ = -1
 
     def atU(self, u):
-        uM = vander(u, len(self))
+        try: uM = vander(u, len(self))
+        except TypeError:
+            uM = vander([u], len(self))
         return dot(uM, self)
     __call__ = at = atU
 

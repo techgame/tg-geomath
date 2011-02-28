@@ -86,7 +86,7 @@ def toAspect(size, aspect, nidx=0, didx=1, grow=None):
     if isinstance(aspect, tuple):
         if isinstance(aspect[1], bool):
             aspect, grow = aspect
-    if not isinstance(aspect, (int, long, float)):
+    if hasattr(aspect, '__len__'):
         if (aspect[didx] == 0):
             if (aspect[nidx] != 0):
                 return 0

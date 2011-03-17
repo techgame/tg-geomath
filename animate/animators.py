@@ -54,6 +54,10 @@ class Animator(AnimationContext):
         ar = self.afm.Chain(self, iterable)
         return self.add(ar)
 
+    def pulse(self, td):
+        ar = self.afm.Pulse(self, td)
+        return self.add(ar)
+
     def targetChain(self, obj, td=1., afn=None):
         outer = self.chain()
         animator = outer.interval(td, afn)
@@ -128,4 +132,21 @@ class Offset(Animator):
             return True
         return self.animateGroup(tv, av, rmgr)
 afm.Offset = Offset
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class Pulse(Animator):
+    animateGroup = Animator._animateParallel
+    def __init__(self, parentCtx, td):
+        Animator.__init__(self, parentCtx)
+        self.td = td
+        self.tlast = None
+
+    def animate(self, tv, av, rmgr):
+        dtv = self.dtv(tv)
+        while dtv > self.tlast:
+            self.tlast = (self.tlast or 0.0) + self.td
+            self.animateGroup(tv, av, rmgr)
+        return len(self)
+afm.Pulse = Pulse
 

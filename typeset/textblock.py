@@ -47,6 +47,7 @@ class TextBlockLine(DataHostObject):
         maxIdx = sorts['lineSize'].argmax(0)[0]
 
         maxSort = sorts[maxIdx]
+        self.maxSort = maxSort
         lineSize = maxSort['lineSize']
         ascender, descender = maxSort['ascenders']
 
@@ -261,4 +262,8 @@ class TextBlock(DataHostObject):
 
         self._updatePageIdxMap(True)
         return True
+
+    @property
+    def textHeight(self):
+        return sum(line.tbox.height for line in self.lines)
 

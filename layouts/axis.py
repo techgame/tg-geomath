@@ -26,6 +26,7 @@ from .basic import BaseLayoutStrategy
 
 class AxisLayoutStrategy(BaseLayoutStrategy):
     axis = Vector.property([0,0], 'b')
+    scroll = Vector.property([0.,0.], 'f')
     clip = False
 
     def countVisibile(self, cells, box):
@@ -37,17 +38,11 @@ class AxisLayoutStrategy(BaseLayoutStrategy):
 
         # determin sizes for cells
         axisSizes, lbox = self.axisSizesFor(cells, lbox)
-
         iCellBoxes = self.iterCellBoxes(cells, lbox, axisSizes)
-        iCells = iter(cells)
 
         # let cells lay themselves out in their boxes
-        for cbox, c in izip(iCellBoxes, iCells):
-            yield True, c
-
-        # hide cells that have no cbox
-        for c in iCells:
-            yield False, c
+        for c, cbox in iCellBoxes:
+            yield cbox is not None, c
 
     def layoutCalc(self, cells, box, at=None):
         lbox = box.copy()
@@ -66,17 +61,11 @@ class AxisLayoutStrategy(BaseLayoutStrategy):
 
         # determin sizes for cells
         axisSizes, lbox = self.axisSizesFor(cells, lbox)
-
         iCellBoxes = self.iterCellBoxes(cells, lbox, axisSizes)
-        iCells = iter(cells)
 
         # let cells lay themselves out in their boxes
-        for cbox, c in izip(iCellBoxes, iCells):
+        for c, cbox in iCellBoxes:
             c.layoutInBox(cbox)
-
-        # hide cells that have no cbox
-        for c in iCells:
-            c.layoutInBox(None)
 
     def axisSizesFor(self, cells, lbox=None):
         if lbox is None:
@@ -119,19 +108,27 @@ class AxisLayoutStrategy(BaseLayoutStrategy):
 
         cellBox = Box()
 
+        iterCells = iter(cells)
         clip = self.clip
         if axis[0]: # horizontal
             # let each cell know it's new pos and size
             p0 = lbox.at[0,0] + (1,1)*outside
             pend = lbox.at[1,0] + (-1,1)*outside
+            pstart = p0[:]
+            p0 += self.scroll
 
             for asize in axisSizes:
                 p1 = p0 + asize + nonAxisSize
-                if clip and (pend-p1)[0] <= 0:
-                    break
+                if clip:
+                    if (pend-p1)[0] <= 0:
+                        break
+                    if (pend-p1)[0] >= 0:
+                        yield iterCells.next(), None
+                        p0 += asize + axisBorders
+                        continue
 
                 cellBox.pv = (p0, p1)
-                yield cellBox
+                yield iterCells.next(), cellBox
                 p0 += asize + axisBorders
 
             #p0 += axis*outside
@@ -140,17 +137,27 @@ class AxisLayoutStrategy(BaseLayoutStrategy):
             # let each cell know it's new pos and size
             p0 = lbox.at[0,1] + (1,-1)*outside
             pend = lbox.at[0,0] + (1,1)*outside
+            pstart = p0.copy()
+            p0 += self.scroll
 
             for asize in axisSizes:
                 p1 = p0 - asize
-                if clip and (p1-pend)[1] <= 0:
-                    break
+                if clip:
+                    if (p1-pend)[1] <= 0:
+                        break
+                    if (p1-pstart)[1] >= 0:
+                        yield iterCells.next(), None
+                        p0 -= asize + axisBorders
+                        continue
 
                 cellBox.pv = (p1, p0 + nonAxisSize)
-                yield cellBox
+                yield iterCells.next(), cellBox
                 p0 -= asize + axisBorders
 
             #p0 -= axis*outside
+
+        for cell in iterCells:
+            yield cell
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

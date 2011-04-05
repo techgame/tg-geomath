@@ -66,18 +66,11 @@ class GridLayoutStrategy(BaseLayoutStrategy):
 
         # figure out what our row and column sizes should be from the cells
         rowSizes, colSizes = self.rowColSizesFor(cells, lbox)
-
         iCellBoxes = self.iterCellBoxes(cells, lbox, rowSizes, colSizes)
-        iCells = iter(cells)
 
         # let cells lay themselves out in their boxes
-        for cbox, c in izip(iCellBoxes, iCells):
-            if c is not None:
-                c.layoutInBox(cbox)
-
-        # hide cells that have no cbox
-        for c in iCells:
-            c.layoutInBox(None)
+        for c, cbox in iCellBoxes:
+            c.layoutInBox(cbox)
 
     def iterCellBoxes(self, cells, lbox, rowSizes, colSizes):
         posStart = lbox.pos + lbox.size*self._vaxis
@@ -89,13 +82,15 @@ class GridLayoutStrategy(BaseLayoutStrategy):
         cellBox = Box(posStart, posStart)
         cellPos = cellBox.pos
         posRow = posStart
+
+        iterCells = iter(cells)
         for row in rowSizes:
             # adv down by row
             cellPos -= row
             for col in colSizes:
                 # yield cell lbox
                 cellBox.size = row + col
-                yield cellBox
+                yield iterCells.next(), cellBox
 
                 # adv right by col + inside border
                 cellPos += col + advCol

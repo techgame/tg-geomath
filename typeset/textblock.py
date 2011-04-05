@@ -28,6 +28,7 @@ from .mosaic import MosaicPageArena
 
 class TextLayoutStrategy(AxisLayoutStrategy):
     axis = Vector.property([0,1], 'b')
+    scroll = Vector.property([0., 0.], 'f')
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -176,6 +177,12 @@ class TextBlock(DataHostObject):
     def setColor(self, value):
         self.meshes['color'][:] = value
     color = property(getColor, setColor)
+
+    def getScroll(self):
+        return self.layoutAlg.scroll
+    def setScroll(self, scroll):
+        self.layoutAlg.scroll = scroll
+    scroll = property(getScroll, setScroll)
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

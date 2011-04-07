@@ -157,7 +157,7 @@ class AxisLayoutStrategy(BaseLayoutStrategy):
             #p0 -= axis*outside
 
         for cell in iterCells:
-            yield cell
+            yield cell, None
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

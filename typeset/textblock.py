@@ -74,14 +74,31 @@ class TextBlockLine(DataHostObject):
             [+0.15, -0.25],
             [+0.15, +0.25],
             [-0.15, +0.25]], 'f')
-    def getOffset(self):
-        return (self.box.p0 - self.tbox.p0 - self._linearOffsetStart) + self._adj_offset
+    def getOffset(self, adj=True):
+        off = (self.box.p0 - self.tbox.p0 - self._linearOffsetStart)
+        if adj: 
+            return off + self._adj_offset
+        else: return off
     offset = property(getOffset)
 
     def layoutInBox(self, box):
         if box:
             align = self.align
             self.box.at[align] = box.at[align]
+
+    def buildSelectionBoxes(self, sel, sorts, xfrm):
+        s0 = max(sel.start, self.slice.start)
+        s1 = min(sel.stop, self.slice.stop)
+        if s1 > s0:
+            subsel = slice(s0, s1)
+            asc, dec = self.maxSort['ascenders']
+            off0, off1 = sorts['offset'][[s0,s1]]
+            p0 = [off0[0][0], dec[0]]
+            p1 = [off1[0][0], asc[0]]
+            b = Box(p0, p1)
+            b += self.getOffset(False)
+            return [b.geoXfrm(xfrm)]
+        else: return []
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -100,6 +117,12 @@ class TextBlock(DataHostObject):
     def __init__(self, fit=False, clip=False, pageSize=None):
         self.init(fit, clip)
         self.createArena(pageSize)
+
+    def buildSelectionBoxes(self, sel, xfrm):
+        sorts = self._sorts
+        r = sum((l.buildSelectionBoxes(sel, sorts, xfrm) for l in self.lines), [])
+        if r: r = numpy.concatenate(r)
+        return r
 
     def init(self, fit, clip):
         self.clear()
@@ -184,6 +207,19 @@ class TextBlock(DataHostObject):
     def setScroll(self, scroll):
         self.layoutAlg.scroll = scroll
     scroll = property(getScroll, setScroll)
+
+    def makePosVisible(self, pos, margin=0):
+        y = pos[1]
+        box = self.box
+        dT = y+margin - box.top
+        if dT <= 0:
+            dT = y-margin - box.bottom
+            if dT >= 0:
+                return False
+
+        self.scroll[1] -= dT
+        self.invalidate()
+        return True
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

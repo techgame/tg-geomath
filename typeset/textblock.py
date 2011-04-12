@@ -208,17 +208,26 @@ class TextBlock(DataHostObject):
         self.layoutAlg.scroll = scroll
     scroll = property(getScroll, setScroll)
 
+    def scrollToYPos(self, y):
+        y = min(max(0, y), self.textHeight-self.box.height)
+        self.scroll[1] = y
+        self.invalidate()
+    def scrollPos(self, delta):
+        self.scrollToYPos(self.scroll[1] + delta)
+
     def makePosVisible(self, pos, margin=0):
-        y = pos[1]
         box = self.box
+        if margin >= box.height:
+            return False
+
+        y = pos[1]
         dT = y+margin - box.top
         if dT <= 0:
             dT = y-margin - box.bottom
             if dT >= 0:
                 return False
 
-        self.scroll[1] -= dT
-        self.invalidate()
+        self.scrollToYPos(self.scroll[1] - dT)
         return True
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

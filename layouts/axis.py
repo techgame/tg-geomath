@@ -122,7 +122,7 @@ class AxisLayoutStrategy(BaseLayoutStrategy):
                 if clip:
                     if (pend-p1)[0] <= 0:
                         break
-                    if (pend-p1)[0] >= 0:
+                    if (pstart-p1)[0] >= 0:
                         yield iterCells.next(), None
                         p0 += asize + axisBorders
                         continue

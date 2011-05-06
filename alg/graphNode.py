@@ -84,10 +84,12 @@ class GraphNode(object):
 
         return node
 
+    def graphPass(self, GraphPass=GraphPass):
+        return GraphPass(self)
     def iter(self):
-        return GraphPass(self).iter()
+        return self.graphPass().iter()
     def iterParents(self):
-        return GraphPass(self).iter(nextLevelFor='parents')
+        return self.graphPass().iter(nextLevelFor='parents')
 
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     #~ Graph Change Recording
@@ -331,7 +333,7 @@ class GraphNode(object):
         print >> fout, title
         print >> fout, "=" * len(title)
 
-        itree = GraphPass(self).iterStack(True, nextLevelFor)
+        itree = self.graphPass().iterStack(True, nextLevelFor)
         for op, node in itree:
             if op >= 0:
                 print >> fout, '%s- %r' % (indent*indentStr, node)

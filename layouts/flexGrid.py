@@ -78,7 +78,9 @@ class FlexGridLayoutStrategy(GridLayoutStrategy):
         idxWalk = ndindex((nRows, nCols))
         for c, idx in izip(cells, idxWalk):
             weights[idx] = (getattr(c, 'weight', None) or default)
-            minSizes[idx] = (getattr(c, 'minSize', None) or default)
+            sz = getattr(c, 'minSize', None)
+            if sz is None: sz = default
+            minSizes[idx] = sz
 
         return weights, minSizes
 

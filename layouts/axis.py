@@ -169,7 +169,9 @@ class AxisLayoutStrategy(BaseLayoutStrategy):
         idxWalk = ndindex(weights.shape[:-1])
         for c, idx in izip(cells, idxWalk):
             weights[idx] = getattr(c, 'weight', default)
-            minSizes[idx] = getattr(c, 'minSize', default)
+            sz = getattr(c, 'minSize', None)
+            if sz is None: sz = default
+            minSizes[idx] = sz
 
         return (weights, minSizes)
 

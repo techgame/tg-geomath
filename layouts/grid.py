@@ -131,7 +131,9 @@ class GridLayoutStrategy(BaseLayoutStrategy):
         # grab cell info into minSize and weights arrays
         idxWalk = ndindex((nRows, nCols))
         for c, idx in izip(cells, idxWalk):
-            minSizes[idx] = (getattr(c, 'minSize', None) or default)
+            sz = getattr(c, 'minSize', None)
+            if sz is None: sz = default
+            minSizes[idx] = sz
 
         return minSizes.reshape((-1, 2)).max(0)
 

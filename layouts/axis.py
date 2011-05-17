@@ -52,7 +52,9 @@ class AxisLayoutStrategy(BaseLayoutStrategy):
         axis = self.axis
         lsize = (1-axis)*lbox.size
         # add axisSize and borders along axis
-        lsize += axisSizes.sum(0) + axis*(2*self.outside + (len(axisSizes)-1)*self.inside)
+        if len(axisSizes)>0:
+            lsize += axisSizes.sum(0) + axis*(2*self.outside + (len(axisSizes)-1)*self.inside)
+        else: lsize += 2*axis*self.outside
         lbox.setSize(lsize, at)
         return lbox
 

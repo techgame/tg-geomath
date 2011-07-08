@@ -10,7 +10,7 @@
 #~ Definitions 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-class GraphPass(object):
+class GraphPassBase(object):
     depthFirst = True
     skipRoot = False
     nextLevelFor = 'children'
@@ -22,22 +22,7 @@ class GraphPass(object):
         -1: (lambda cnode: cnode.parents),
         }
 
-    def __init__(self, root=None):
-        if root is not None:
-            self.root = root
-
-    def iter(self, depthFirst=None, nextLevelFor=None, skipRoot=None):
-        return (cnode for op, cnode in 
-                    self.iterNodeStack(None, depthFirst, nextLevelFor, skipRoot)
-                        if op >= 0)
-    __iter__ = iter 
-
-    def iterStack(self, depthFirst=None, nextLevelFor=None, skipRoot=None):
-        return self.iterNodeStack(None, depthFirst, nextLevelFor, skipRoot)
-
-    def iterNodeStack(self, root=None, depthFirst=None, nextLevelFor=None, skipRoot=None):
-        if root is None:
-            root = self.root
+    def iterNodeStack(self, root, depthFirst=None, nextLevelFor=None, skipRoot=None):
         if depthFirst is None:
             depthFirst = self.depthFirst
         if nextLevelFor is None:
@@ -78,4 +63,19 @@ class GraphPass(object):
                 if cnode is not None:
                     if (yield -1, cnode):
                         yield 'noop'
-                
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+class GraphPass(GraphPassBase):
+    def __init__(self, root):
+        self.root = root
+
+    def iter(self, depthFirst=None, nextLevelFor=None, skipRoot=None):
+        return (cnode for op, cnode in 
+                    self.iterNodeStack(self.root, depthFirst, nextLevelFor, skipRoot)
+                        if op >= 0)
+    __iter__ = iter 
+
+    def iterStack(self, depthFirst=None, nextLevelFor=None, skipRoot=None):
+        return self.iterNodeStack(self.root, depthFirst, nextLevelFor, skipRoot)
+

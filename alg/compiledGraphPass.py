@@ -31,7 +31,7 @@ class RawCompileStack(object):
                 pop(op, cnode)
                 continue
 
-            compileNodeTo(cnode, self)
+            compileNodeTo(op, cnode, self)
 
             if self._cull:
                 itree.send(True)
@@ -43,6 +43,9 @@ class RawCompileStack(object):
         del self._cull
         del self._unwind
         del self._stack
+        return self._result_(self._result)
+
+    def _result_(self, result):
         return self
 
     def _pop_(self, op, cnode):
@@ -61,6 +64,21 @@ class RawCompileStack(object):
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+class CallStackInfoMixin(object):
+    def __init__(self, key, root):
+        self._initInfo(key, root)
+
+    def _initInfo(self, key, root):
+        self.key = key
+        self.root = root
+
+    def __repr__(self):
+        return "<%s.%s key:%r |result|:%s>" % (
+            self.__class__.__module__, self.__class__.__name__, 
+            self.key, len(self._result))
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 class CompileStack(RawCompileStack):
     def add(self, *items):
         self._result.extend(items)
@@ -69,6 +87,8 @@ class CompileStack(RawCompileStack):
     def cull(self, bCull=True):
         self._cull = bCull
 
+    def depth(self):
+        return len(self._stack)
     def __len__(self):
         return len(self._result)
     def __iter__(self):
@@ -91,8 +111,11 @@ class CompileCallStack(CompileStack):
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class CompiledGraphPass(GraphPass):
+    class CompileCallStack(CallStackInfoMixin, CompileCallStack):
+        pass
+
     def newCompileStack(self, key, root):
-        return CompileStack()
+        return self.CompileCallStack(key, root)
 
     def compile(self, key, root=None):
         if root is None:
@@ -102,14 +125,14 @@ class CompiledGraphPass(GraphPass):
         if result is not None:
             return result
 
-        ct = self.newCompileStack(key, root)
+        ctree = self.newCompileStack(key, root)
         itree = self.iterNodeStack(root)
-        result = ct._compile_(itree, self.compileNodeTo)
+        result = ctree._compile_(itree, self.compileNodeTo)
 
         self._setCached(key, root, result)
         return result
 
-    def compileNodeTo(self, cnode, ct):
+    def compileNodeTo(self, op, cnode, ctree):
         raise NotImplementedError('Subclass Responsibility: %r' % (self,))
 
     def _getCached(self, key, root):

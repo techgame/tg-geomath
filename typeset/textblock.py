@@ -216,6 +216,22 @@ class TextBlock(DataHostObject):
     def scrollPos(self, delta):
         self.scrollToYPos(self.scroll[1] + delta)
 
+    def posForIdx(self, idx, dLines=0, incHeight=False):
+        sidx = min(idx, len(self.text)-1)
+        cs = self._sorts[sidx]
+        V = self.meshes['vertex'][sidx]
+        V = V[0] - cs['quad'][0]
+        if dLines:
+            V -= dLines * cs['lineSize']
+        if incHeight:
+            return V, cs['lineSize'][1]
+        else: return V
+
+    def makeIdxVisible(self, idx, margin=True, dLines=0):
+        pos, lineHeight = self.posForIdx(idx, dLines, True)
+        if margin is True: margin = lineHeight
+        return self.makePosVisible(pos, margin)
+
     def makePosVisible(self, pos, margin=0):
         box = self.box
         if margin >= box.height:

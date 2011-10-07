@@ -134,7 +134,7 @@ class AnimationContext(Animation):
         animateList = self._animateList
         self._animateList = []
 
-        for (key, animation) in animateList:
+        for (key, animation) in filter(None, animateList):
             self._unregister(animation, key)
 
     def discard(self, animation):

@@ -202,6 +202,12 @@ class TextBlock(DataHostObject):
         self.meshes['color'][:] = value
     color = property(getColor, setColor)
 
+    def getLeading(self):
+        return self.layoutAlg.inside[1]
+    def setLeading(self, leading):
+        self.layoutAlg.inside[1] = leading
+    leading = property(getLeading, setLeading)
+
     def getScroll(self):
         return self.layoutAlg.scroll
     def setScroll(self, scroll):

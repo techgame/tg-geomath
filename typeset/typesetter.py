@@ -277,4 +277,10 @@ class TypeSetter(DataHostObject):
     def invalidate(self):
         self.block.invalidate()
 
+    def getLeading(self):
+        return self.block.leading
+    def setLeading(self, leading):
+        self.block.leading = leading
+    leading = property(getLeading, setLeading)
+
 
